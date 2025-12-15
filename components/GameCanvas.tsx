@@ -41,6 +41,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   speedMultiplier,    
   selectedDifficulty, // Ontvang de prop
   timeLeft
+
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
@@ -265,6 +266,10 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
   const update = (time: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
+    // Bepaal de actuele lanceerinterval met dynamische versnelling
+    // Lager interval = snellere lancering
+    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
 
     const currentTime = timeLeftRef.current;
     const dynamicSpeedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
@@ -468,10 +473,10 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
           target.vel.y *= 0.5;
           onScoreUpdate(0, 'miss');
         } else {
-            target.status = FireworkStatus.EXPLODING;
-            createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
-            onScoreUpdate(SCORE_GOOD, 'good');
-            target.status = FireworkStatus.DEAD;
+             target.status = FireworkStatus.EXPLODING;
+             createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
+             onScoreUpdate(SCORE_GOOD, 'good');
+             target.status = FireworkStatus.DEAD;
         }
         return;
       }
