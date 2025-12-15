@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { ScoreStats, JudgeResult } from '../types';
-import { getJudgeVerdict } from '../services/geminiService';
 
 interface GameOverModalProps {
   stats: ScoreStats;
@@ -10,20 +9,6 @@ interface GameOverModalProps {
 const GameOverModal: React.FC<GameOverModalProps> = ({ stats, onRestart }) => {
   const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchVerdict = async () => {
-      setLoading(true);
-      const result = await getJudgeVerdict(stats);
-      if (mounted) {
-        setJudgeResult(result);
-        setLoading(false);
-      }
-    };
-    fetchVerdict();
-    return () => { mounted = false; };
-  }, [stats]);
 
   return (
     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
