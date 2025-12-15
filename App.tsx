@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { FIREWORK_COLORS } from './constants';
+// GEWIJZIGDE IMPORTS: Alle constanten die we nodig hebben
+import { 
+  FIREWORK_COLORS, 
+  GAME_DURATION_MS, 
+  COMBO_MULTIPLIER_STEP, 
+  BASE_LAUNCH_INTERVAL_MS, 
+  LAUNCH_MODIFIERS, 
+  Difficulty 
+} from './constants'; 
 
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import { GameState, ScoreStats } from './types';
-import { GAME_DURATION_MS, COMBO_MULTIPLIER_STEP } from './constants';
 import { audioManager } from './utils/audio';
 audioManager.loadTrack('./audio/song.mp3')
 const App: React.FC = () => {
@@ -35,8 +42,20 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
+  // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
+  
+  // Ref voor de gekozen basisinterval
+  const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
+
 
   const startGame = () => {
+    // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
+    const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
+    baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
+    setSpeedMultiplier(1.0); // Reset de dynamische versneller
+    
     setStats({
       score: 0,
       combo: 0,
@@ -73,6 +92,20 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // FUNCTIE: Berekent de dynamische versneller (agressiever in de laatste 15s)
+    const calculateSpeedMultiplier = (remainingTimeSeconds: number): number => {
+      if (remainingTimeSeconds > 15) {
+        return 1.0;  // Normale snelheid
+      } else if (remainingTimeSeconds > 10) {
+        return 1.35; // Versnelling 1 (35% sneller)
+      } else if (remainingTimeSeconds > 5) {
+        return 1.8;  // Versnelling 2 (80% sneller)
+      } else if (remainingTimeSeconds > 0) {
+        return 2.5;  // Versnelling 3 (150% sneller - CHAOS!)
+      }
+      return 1.0;
+    };
+    
     // Start or stop the timer depending on gameState and paused
     if (gameState === GameState.PLAYING && !paused) {
       // calculate startTime so remaining continues from current `timeLeft`
@@ -82,6 +115,12 @@ const App: React.FC = () => {
         const elapsed = Date.now() - startTimeRef.current;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
+
+        // Pas dynamische snelheidsaanpassing toe
+        const newMultiplier = calculateSpeedMultiplier(remaining);
+        if (newMultiplier !== speedMultiplier) {
+          setSpeedMultiplier(newMultiplier);
+        }
 
         if (remaining <= 0) {
           endGame();
@@ -100,7 +139,7 @@ const App: React.FC = () => {
         timerRef.current = null;
       }
     };
-  }, [gameState, paused]);
+  }, [gameState, paused, timeLeft, endGame, speedMultiplier]); // speedMultiplier is toegevoegd als dependency
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -166,6 +205,10 @@ const App: React.FC = () => {
         onGameOver={endGame}
         colors={selectedColors}
         paused={paused}
+        // DE NIEUWE PROPS!
+        baseLaunchInterval={baseGameIntervalRef.current} 
+        speedMultiplier={speedMultiplier}
+        selectedDifficulty={selectedDifficulty} 
       />
 
       {gameState === GameState.MENU && (
@@ -187,6 +230,30 @@ const App: React.FC = () => {
             <strong>SPATIE</strong>.
           </p>
 
+          {/* 🎯 Selectie moeilijkheidsgraad (NIEUW) */}
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <p className="text-slate-300 font-semibold">
+              Kies moeilijkheidsgraad
+            </p>
+
+            <div className="flex gap-4 mt-3">
+              {Object.values(Difficulty).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedDifficulty(d)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition
+                    ${
+                      selectedDifficulty === d
+                        ? 'bg-violet-600 text-white shadow-lg'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           {/* 🎨 KLEURKEUZE */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <p className="text-slate-300 font-semibold">

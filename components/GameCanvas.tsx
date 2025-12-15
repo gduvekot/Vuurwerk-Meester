@@ -14,9 +14,9 @@ import {
   EXPLOSION_PARTICLES, 
   EXPLOSION_SPEED, 
   PARTICLE_DECAY,
-  LAUNCH_INTERVAL_MS,
   BEAT_MS,
-  FLIGHT_DURATION_BEATS
+  FLIGHT_DURATION_BEATS,
+  Difficulty // NIEUW
 } from '../constants';
 
 interface GameCanvasProps {
@@ -25,9 +25,22 @@ interface GameCanvasProps {
   onGameOver: () => void;
   colors: string[];
   paused?: boolean;
+  // NIEUWE PROPS
+  baseLaunchInterval: number; 
+  speedMultiplier: number;    
+  selectedDifficulty: Difficulty; // NIEUW
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver, colors, paused = false }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ 
+  gameState, 
+  onScoreUpdate, 
+  onGameOver, 
+  colors, 
+  paused = false,
+  baseLaunchInterval, 
+  speedMultiplier,    
+  selectedDifficulty // Ontvang de prop
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
   const pausedRef = useRef<boolean>(false);
@@ -174,9 +187,19 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
 
   const spawnFirework = (width: number, height: number) => {
-    const x = width * 0.1 + Math.random() * (width * 0.8);
+    // 1. Bepaal de horizontale spreiding op basis van de moeilijkheidsgraad
+    let horizontalSpread = 0.8; // Normaal: van 10% tot 90% van de breedte
+    if (selectedDifficulty === Difficulty.HARD) {
+      horizontalSpread = 1.0; // Moeilijk: Van 0% tot 100% van de breedte (breder)
+    } else if (selectedDifficulty === Difficulty.EASY) {
+      horizontalSpread = 0.5; // Makkelijk: Beperkt tot het midden (minder breed)
+    }
+
+    // Bereken het lanceerpunt op basis van de spreiding
+    const x = width * ((1 - horizontalSpread) / 2) + Math.random() * (width * horizontalSpread);
     const startY = height;
     
+    // Bepaal de vluchtparameters
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
     const estimatedFrames = durationMs / 11.666; 
     const vy = -(GRAVITY * estimatedFrames);
@@ -184,10 +207,18 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
     const distance = (vy * estimatedFrames) + (0.5 * GRAVITY * (estimatedFrames * estimatedFrames));
     const targetHeight = startY + distance;
 
+    // 2. Bepaal de zijwaartse snelheid
+    let vxRange = 1; // Normaal
+    if (selectedDifficulty === Difficulty.HARD) {
+      vxRange = 2; // Snellere zijwaartse drift (moeilijker te volgen)
+    } else if (selectedDifficulty === Difficulty.EASY) {
+      vxRange = 0.5; // Langzamere zijwaartse drift
+    }
+
     const fw: Firework = {
       id: Date.now() + Math.random(),
       pos: { x, y: startY },
-      vel: { x: (Math.random() - 0.5) * 1, y: vy },
+      vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
       status: FireworkStatus.RISING,
       fuseTime: 0,
@@ -226,10 +257,15 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
   const update = (time: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
+    // Bepaal de actuele lanceerinterval met dynamische versnelling
+    // Lager interval = snellere lancering
+    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
-      if (time - lastLaunchRef.current > LAUNCH_INTERVAL_MS) {
-        const drift = (time - lastLaunchRef.current) - LAUNCH_INTERVAL_MS;
+      // Gebruik de dynamische interval
+      if (time - lastLaunchRef.current > currentLaunchInterval) { 
+        const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
         lastLaunchRef.current = time - drift; 
         
         spawnFirework(canvas.width, canvas.height);
@@ -249,13 +285,14 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
         if (fw.pos.y > canvas.height + 50) {
             fw.status = FireworkStatus.DEAD;
             if (fw.status === FireworkStatus.RISING) {
-                 onScoreUpdate(0, 'wet'); 
+              // Wordt 'wet' als hij de bodem bereikt zonder ontploffing
+              onScoreUpdate(0, 'wet'); 
             }
         }
         if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) { 
-             fw.status = FireworkStatus.WET;
-             fw.color = '#555'; 
-             onScoreUpdate(0, 'wet');
+          // Hier wordt hij 'wet' als hij te ver valt zonder geklikt te worden.
+          fw.status = FireworkStatus.WET;
+          fw.color = '#555'; 
         }
       }
     });
@@ -420,15 +457,10 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
           target.vel.y *= 0.5;
           onScoreUpdate(0, 'miss');
         } else {
-          target.status = FireworkStatus.EXPLODING;
-          createExplosion(
-            target.pos.x,
-            target.pos.y,
-            target.color,
-            'normal'
-          );
-          onScoreUpdate(SCORE_GOOD, 'good');
-          target.status = FireworkStatus.DEAD;
+            target.status = FireworkStatus.EXPLODING;
+            createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
+            onScoreUpdate(SCORE_GOOD, 'good');
+            target.status = FireworkStatus.DEAD;
         }
         return;
       }
@@ -462,9 +494,10 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
   return (
     <canvas 
-        ref={canvasRef} 
-        onClick={handleTrigger}
-        className="absolute top-0 left-0 w-full h-full cursor-pointer touch-none"
+      ref={canvasRef} 
+      onClick={handleTrigger}
+      // OPLOSSING VOOR DE SYNTAX FOUT: classname staat op één regel
+      className="absolute top-0 left-0 w-full h-full cursor-pointer touch-none"
     />
   );
 };
