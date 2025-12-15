@@ -5,7 +5,7 @@ import GameOverModal from './components/GameOverModal';
 import { GameState, ScoreStats } from './types';
 import { GAME_DURATION_MS, COMBO_MULTIPLIER_STEP } from './constants';
 import { audioManager } from './utils/audio';
-
+audioManager.loadTrack('./audio/song.mp3')
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);

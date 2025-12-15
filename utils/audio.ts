@@ -3,11 +3,17 @@ import { BPM } from '../constants';
 class AudioManager {
   private ctx: AudioContext | null = null;
   private isPlaying: boolean = false;
+  
+  // New: Variables for the MP3 file
+  private audioBuffer: AudioBuffer | null = null;
+  private sourceNode: AudioBufferSourceNode | null = null;
+
+  // Timing variables (We keep these to sync the game visuals!)
   private nextNoteTime: number = 0;
   private timerID: number | null = null;
   private beatCount: number = 0;
-  private lookahead: number = 25.0; // ms
-  private scheduleAheadTime: number = 0.1; // s
+  private lookahead: number = 25.0; 
+  private scheduleAheadTime: number = 0.1; 
 
   constructor() {
     // Lazy init
@@ -16,6 +22,22 @@ class AudioManager {
   private init() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+  }
+
+  // --- NEW: Load the MP3 file ---
+  public async loadTrack(url: string) {
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      // Decode the MP3 data so the browser can play it perfectly
+      this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+      console.log("Track loaded!");
+    } catch (error) {
+      console.error("Error loading track:", error);
     }
   }
 
@@ -29,16 +51,39 @@ class AudioManager {
   public start() {
     this.resume();
     if (this.isPlaying) return;
+    if (!this.audioBuffer || !this.ctx) {
+        console.warn("No audio loaded! Call loadTrack() first.");
+        return;
+    }
     
     this.isPlaying = true;
     this.beatCount = 0;
-    // Start slightly in future to avoid glitches
-    this.nextNoteTime = this.ctx!.currentTime + 0.1;
+
+    // 1. Play the actual Music (The MP3)
+    this.sourceNode = this.ctx.createBufferSource();
+    this.sourceNode.buffer = this.audioBuffer;
+    this.sourceNode.connect(this.ctx.destination);
+    this.sourceNode.start(0);
+
+    // 2. Start the "Silent Metronome" 
+    // This runs in the background so your game logic knows exactly 
+    // which beat we are on (for scoring/fireworks).
+    this.nextNoteTime = this.ctx.currentTime;
     this.scheduler();
   }
 
   public stop() {
     this.isPlaying = false;
+    
+    // Stop the music
+    if (this.sourceNode) {
+        try {
+            this.sourceNode.stop();
+        } catch(e) { /* ignore if already stopped */ }
+        this.sourceNode = null;
+    }
+
+    // Stop the scheduler
     if (this.timerID !== null) {
       window.clearTimeout(this.timerID);
       this.timerID = null;
@@ -65,34 +110,15 @@ class AudioManager {
   }
 
   private scheduleNote(beatNumber: number, time: number) {
-    if (!this.ctx) return;
-
-    // Metronome pattern: Kick on 1 & 3, Snare/Hat on 2 & 4
-    // 0 = 1st beat
-    const beatIndex = beatNumber % 4;
-
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    if (beatIndex === 0 || beatIndex === 2) {
-      // KICK
-      osc.frequency.setValueAtTime(150, time);
-      osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
-      gain.gain.setValueAtTime(0.8, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
-    } else {
-      // SNARE / HAT style
-      osc.type = 'triangle'; // rougher sound
-      osc.frequency.setValueAtTime(400, time); 
-      gain.gain.setValueAtTime(0.3, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-    }
-
-    osc.start(time);
-    osc.stop(time + 0.5);
+    // --- CHANGED ---
+    // We removed the Oscillator/Gain code here.
+    // The music is handled by the MP3 now.
+    
+    // If you need to trigger visuals (like a flashing light on the beat),
+    // you can emit an event here.
+    // Example: document.dispatchEvent(new CustomEvent('beat', { detail: beatNumber }));
+    
+    // For now, it just counts silently.
   }
 }
 

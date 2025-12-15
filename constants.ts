@@ -1,5 +1,5 @@
 export const GRAVITY = 0.15; // Adjusted in logic, but kept base for particles
-export const BPM = 120;
+export const BPM = 132;
 export const BEAT_MS = 60000 / BPM; // 500ms per beat
 export const BEATS_PER_MEASURE = 4;
 
@@ -7,7 +7,7 @@ export const BEATS_PER_MEASURE = 4;
 export const LAUNCH_INTERVAL_MS = BEAT_MS * 2; // Launch every 2 beats (1000ms)
 export const FLIGHT_DURATION_BEATS = 2; // Takes 2 beats to reach apex
 
-export const GAME_DURATION_MS = 60000; // 60 seconds per round
+export const GAME_DURATION_MS = 100000; // 60 seconds per round
 
 export const COLORS = [
   '#ef4444', // red-500
