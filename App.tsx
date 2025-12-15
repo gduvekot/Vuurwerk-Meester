@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+import { FIREWORK_COLORS } from './constants';
+
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
@@ -21,6 +24,15 @@ const App: React.FC = () => {
   
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
+
+  const [selectedColors, setSelectedColors] = useState<string[]>([
+    '#ef4444',
+    '#f97316',
+    '#eab308',
+    '#22c55e'
+  ]);
+  const [customColor, setCustomColor] = useState('#ff0000');
+
 
   const startGame = () => {
     setStats({
@@ -114,26 +126,88 @@ const App: React.FC = () => {
         gameState={gameState} 
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
+        colors={selectedColors}
       />
 
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
+          
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
-            Vuurwerk<br/>Meester
+            Vuurwerk<br />Meester
           </h1>
-          <p className="text-slate-300 mb-8 text-center max-w-md leading-relaxed text-lg">
+
+          <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
             Luister naar de beat! 🎵
-            <br/>
-            Wacht tot de vuurpijl op de maat zijn hoogste punt bereikt en druk op <strong>SPATIE</strong>.
+            <br />
+            Wacht tot de vuurpijl op de maat zijn hoogste punt bereikt en druk op{' '}
+            <strong>SPATIE</strong>.
           </p>
-          <button 
+
+          {/* 🎨 KLEURKEUZE */}
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <p className="text-slate-300 font-semibold">
+              Kies je vuurwerkkleuren
+            </p>
+
+            <div className="flex gap-2 flex-wrap justify-center mt-3">
+              {selectedColors.map(color => (
+                <button
+                  key={color}
+                  onClick={() =>
+                    setSelectedColors(prev => prev.filter(c => c !== color))
+                  }
+                  className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
+                  style={{ backgroundColor: color }}
+                  title="Klik om te verwijderen"
+                />
+              ))}
+            </div>
+
+            {selectedColors.length === 0 && (
+              <p className="text-red-400 text-sm">
+                Kies minimaal één kleur
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <input
+              type="color"
+              value={customColor}
+              onChange={e => setCustomColor(e.target.value)}
+              className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
+            />
+
+            <button
+              onClick={() => {
+                if (!selectedColors.includes(customColor)) {
+                  setSelectedColors(prev => [...prev, customColor]);
+                }
+              }}
+              className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
+            >
+              Voeg kleur toe
+            </button>
+          </div><br></br>
+
+
+          {/* ▶ STARTKNOP */}
+          <button
             onClick={startGame}
-            className="px-12 py-4 bg-gradient-to-r from-pink-500 to-violet-600 rounded-full text-white font-bold text-2xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(168,85,247,0.5)] animate-pulse"
+            disabled={selectedColors.length === 0}
+            className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
+              ${
+                selectedColors.length === 0
+                  ? 'bg-slate-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
+              }`}
           >
             START SHOW 🔊
           </button>
+
         </div>
       )}
+
 
       {gameState === GameState.PLAYING && (
         <UIOverlay 

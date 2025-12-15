@@ -24,9 +24,10 @@ interface GameCanvasProps {
   gameState: GameState;
   onScoreUpdate: (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => void;
   onGameOver: () => void;
+  colors: string[];
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver, colors }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
   
@@ -51,7 +52,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
       id: Date.now() + Math.random(),
       pos: { x, y: startY },
       vel: { x: (Math.random() - 0.5) * 1, y: vy },
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      color: colors[Math.floor(Math.random() * colors.length)],
       status: FireworkStatus.RISING,
       fuseTime: 0,
       apexY: targetHeight,
