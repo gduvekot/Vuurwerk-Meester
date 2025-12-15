@@ -42,7 +42,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     const startY = height;
     
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
-    const estimatedFrames = durationMs / 16.666; 
+    const estimatedFrames = durationMs / 11.666; 
     const vy = -(GRAVITY * estimatedFrames);
     
     const distance = (vy * estimatedFrames) + (0.5 * GRAVITY * (estimatedFrames * estimatedFrames));
