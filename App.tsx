@@ -133,7 +133,7 @@ const App: React.FC = () => {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
           
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
-            Vuurwerk<br />Meester
+            Scalda Spark
           </h1>
 
           <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
@@ -189,9 +189,6 @@ const App: React.FC = () => {
               Voeg kleur toe
             </button>
           </div><br></br>
-
-
-          {/* ▶ STARTKNOP */}
           <button
             onClick={startGame}
             disabled={selectedColors.length === 0}
