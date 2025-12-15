@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { 
   GameState, 
   Firework, 
@@ -25,11 +25,13 @@ interface GameCanvasProps {
   onScoreUpdate: (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => void;
   onGameOver: () => void;
   colors: string[];
+  paused?: boolean;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver, colors }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver, colors, paused = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
+  const pausedRef = useRef<boolean>(false);
   
   const fireworksRef = useRef<Firework[]>([]);
   const particlesRef = useRef<Particle[]>([]);
@@ -85,7 +87,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (gameState === GameState.PLAYING) {
+    if (gameState === GameState.PLAYING && !pausedRef.current) {
       if (time - lastLaunchRef.current > LAUNCH_INTERVAL_MS) {
         const drift = (time - lastLaunchRef.current) - LAUNCH_INTERVAL_MS;
         lastLaunchRef.current = time - drift; 
@@ -187,14 +189,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
   };
 
   const loop = (time: number) => {
-    if (gameState !== GameState.PLAYING) {
-        if (gameState === GameState.GAME_OVER) {
-             update(time);
-             draw();
-        }
-    } else {
-      update(time);
+    if (gameState === GameState.PLAYING) {
+      if (!pausedRef.current) update(time);
       draw();
+    } else {
+      if (gameState === GameState.GAME_OVER) {
+        update(time);
+        draw();
+      }
     }
     
     lastTimeRef.current = time;
@@ -219,6 +221,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
         if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [gameState]);
+
+  useEffect(() => {
+    // keep a ref of paused so the animation loop sees latest value
+    pausedRef.current = !!paused;
+  }, [paused]);
 
   const handleTrigger = useCallback(() => {
     if (gameState !== GameState.PLAYING) return;
