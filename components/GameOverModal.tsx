@@ -39,28 +39,6 @@ const GameOverModal: React.FC<GameOverModalProps> = ({ stats, onRestart }) => {
             </div>
           </div>
         </div>
-
-        <div className="mb-8 border-t border-slate-700 pt-6">
-          <h3 className="text-sm uppercase tracking-widest text-slate-500 font-bold mb-3 text-center">
-            Jury Oordeel (AI)
-          </h3>
-          {loading ? (
-            <div className="flex flex-col items-center justify-center space-y-2 py-4">
-              <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-slate-400 text-sm animate-pulse">De jury overlegt...</p>
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white mb-2 font-serif italic">
-                "{judgeResult?.rankTitle}"
-              </div>
-              <p className="text-slate-300 italic leading-relaxed">
-                {judgeResult?.critique}
-              </p>
-            </div>
-          )}
-        </div>
-
         <button 
           onClick={onRestart}
           className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg"

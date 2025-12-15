@@ -23,7 +23,6 @@ const App: React.FC = () => {
   const feedbackTimeoutRef = useRef<number | null>(null);
 
   const startGame = () => {
-    // Reset Stats
     setStats({
       score: 0,
       combo: 0,
@@ -34,7 +33,6 @@ const App: React.FC = () => {
     });
     setTimeLeft(GAME_DURATION_MS / 1000);
     
-    // Resume Audio Context (needs user gesture which this click provides)
     audioManager.resume();
     audioManager.start();
     

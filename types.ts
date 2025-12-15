@@ -23,8 +23,8 @@ export interface Color {
 export enum FireworkStatus {
   RISING = 'RISING',
   EXPLODING = 'EXPLODING',
-  DUD = 'DUD',     // Te vroeg
-  WET = 'WET',     // Te laat
+  DUD = 'DUD',     
+  WET = 'WET',    
   DEAD = 'DEAD'
 }
 
@@ -34,8 +34,7 @@ export interface Firework {
   vel: Vector;
   color: string;
   status: FireworkStatus;
-  fuseTime: number; // Time since launch
-  apexY: number;    // Calculated estimated apex height for scoring logic (optional helper)
+  apexY: number;   
   trail: Coordinates[];
 }
 
