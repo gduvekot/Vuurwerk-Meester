@@ -21,9 +21,11 @@ const App: React.FC = () => {
     perfects: 0
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
   
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   const [selectedColors, setSelectedColors] = useState<string[]>([
     '#ef4444',
@@ -45,6 +47,7 @@ const App: React.FC = () => {
     });
     setTimeLeft(GAME_DURATION_MS / 1000);
     
+    setPaused(false);
     audioManager.resume();
     audioManager.start();
     
@@ -54,26 +57,61 @@ const App: React.FC = () => {
   const endGame = () => {
     setGameState(GameState.GAME_OVER);
     audioManager.stop();
+    setPaused(false);
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  const setPausedState = (p: boolean) => {
+    setPaused(p);
+    if (p) audioManager.pause();
+    else audioManager.resume();
+  };
+
+  const handleStopFromPause = () => {
+    setPausedState(false);
+    endGame();
+  };
+
   useEffect(() => {
-    if (gameState === GameState.PLAYING) {
-      const startTime = Date.now();
+    // Start or stop the timer depending on gameState and paused
+    if (gameState === GameState.PLAYING && !paused) {
+      // calculate startTime so remaining continues from current `timeLeft`
+      startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
       timerRef.current = window.setInterval(() => {
-        const elapsed = Date.now() - startTime;
+        if (!startTimeRef.current) return;
+        const elapsed = Date.now() - startTimeRef.current;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
-        
+
         if (remaining <= 0) {
           endGame();
         }
       }, 100);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [gameState]);
+  }, [gameState, paused]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && gameState === GameState.PLAYING) {
+        setPausedState(!paused);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [paused, gameState]);
 
   const handleScoreUpdate = (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => {
     setStats(prev => {
@@ -127,11 +165,17 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
+        paused={paused}
       />
 
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
           
+          <img
+            src="/img/logo.png"
+            alt="Scalda logo"
+            className="w-32 md:w-40 mb-6 drop-shadow-xl"
+          />
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
           </h1>
@@ -210,7 +254,10 @@ const App: React.FC = () => {
         <UIOverlay 
           stats={stats} 
           timeLeft={timeLeft} 
-          lastFeedback={lastFeedback} 
+          lastFeedback={lastFeedback}
+          paused={paused}
+          onTogglePause={(p?: boolean) => setPausedState(typeof p === 'boolean' ? p : !paused)}
+          onStop={handleStopFromPause}
         />
       )}
 
