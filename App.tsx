@@ -22,6 +22,7 @@ const App: React.FC = () => {
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
   
+  const timeLeftRef = useRef(timeLeft);
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
@@ -127,6 +128,7 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
+        timeLeft={timeLeft} 
       />
 
       {gameState === GameState.MENU && (
