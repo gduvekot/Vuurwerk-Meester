@@ -7,9 +7,11 @@ import {
   COMBO_MULTIPLIER_STEP,
   BASE_LAUNCH_INTERVAL_MS,
   LAUNCH_MODIFIERS,
-  Difficulty
+  Difficulty,
+  updateSongSettings
 } from './constants';
 
+import { updateGameBpm} from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
@@ -18,10 +20,18 @@ import Achievements from './components/Achievements';
 import { getAchievements, evaluateEndOfGame, getMeta } from './utils/achievements';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
-audioManager.loadTrack('./audio/song.mp3')
+const SONGS = [
+  { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 400 },
+  { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 10 },
+  { id: '3', title: 'Progressive House 2', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 }
+];
+
 const App: React.FC = () => {
+  const [selectedSongUrl, setSelectedSongUrl] = useState<string>(SONGS[0].url);
+  const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
+  const [currentBpm, setCurrentBpm] = useState(128); //bpm
   const [paused, setPausedState] = useState(false);
   const startTimeRef = useRef<number>(0);
   const [stats, setStats] = useState<ScoreStats>({
@@ -71,7 +81,8 @@ const App: React.FC = () => {
   }, []);
 
 
-  const startGame = () => {
+  const startGame =  async () => {
+    const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
     // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
     const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
     baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
@@ -85,10 +96,42 @@ const App: React.FC = () => {
       misses: 0,
       perfects: 0
     });
-    setTimeLeft(GAME_DURATION_MS / 1000);
 
-    audioManager.resume();
-    audioManager.start();
+    try {
+        console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
+        // set song bpm
+        audioManager.setBpm(selectedSong.bpm);
+        
+
+        setCurrentBpm(selectedSong.bpm);
+        updateSongSettings(selectedSong.bpm, selectedSong.delay);
+        // load track
+        await audioManager.loadTrack(selectedSong.url);
+      
+        setTimeLeft(GAME_DURATION_MS / 1000);
+      
+        audioManager.resume();
+      
+
+
+        setTimeout(() => {
+            // Nu pas de muziek starten
+            audioManager.start();
+            
+            // En NU pas het spel op 'PLAYING' zetten
+            // Zodat de timer en de game loop synchroon lopen met de muziek
+            setGameState(GameState.PLAYING);
+            
+        }, selectedSong.delay || 0);
+
+
+        setGameState(GameState.PLAYING);
+    } catch (error) {
+        console.error("Fout:", error);
+        alert("Kon track niet laden.");
+    } finally {
+        setIsLoading(false);
+    }
 
     setGameState(GameState.PLAYING);
   };
@@ -279,29 +322,21 @@ const App: React.FC = () => {
             <strong>SPATIE</strong>.
           </p>
 
-          {/* 🎯 Selectie moeilijkheidsgraad (NIEUW) */}
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <p className="text-slate-300 font-semibold">
-              Kies moeilijkheidsgraad
-            </p>
+          <div className="flex flex-col items-center gap-2 mb-8 w-full max-w-xs">
+            <label className="text-slate-300 font-semibold">Kies een track</label>
 
-            <div className="flex gap-4 mt-3">
-              {Object.values(Difficulty).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setSelectedDifficulty(d)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition
-                    ${selectedDifficulty === d
-                      ? 'bg-violet-600 text-white shadow-lg'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                >
-                  {d}
-                </button>
+            <select
+              value={selectedSongUrl}
+              onChange={(e) => setSelectedSongUrl(e.target.value)}
+              className="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:border-purple-500 focus:outline-none cursor-pointer hover:bg-slate-700 transition"
+            >
+              {SONGS.map((song) => (
+                <option key={song.id} value={song.url}>
+                  {song.title}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
-
           {/* 🎨 KLEURKEUZE */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <p className="text-slate-300 font-semibold">

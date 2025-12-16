@@ -16,7 +16,9 @@ import {
   PARTICLE_DECAY,
   BEAT_MS,
   FLIGHT_DURATION_BEATS,
-  Difficulty // NIEUW
+  OFFSET,
+  Difficulty, // NIEUW
+  BEATS_PER_MEASURE
 } from '../constants';
 
 interface GameCanvasProps {
@@ -271,7 +273,7 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
     // Bepaal de actuele lanceerinterval met dynamische versnelling
     // Lager interval = snellere lancering
-    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
+    const currentLaunchInterval =  BEAT_MS / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
       // Gebruik de dynamische interval
