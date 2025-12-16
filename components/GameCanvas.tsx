@@ -116,7 +116,7 @@ const createTextExplosion = (
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const points = getTextPoints(text, x, y, ctx);
+  const points = getTextPoints(text, x, y);
   points.forEach(p => {
     particlesRef.current.push({
       id: Math.random(),
@@ -230,7 +230,6 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
       vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
       status: FireworkStatus.RISING,
-      fuseTime: 0,
       apexY: targetHeight,
       trail: []
     };
