@@ -265,7 +265,10 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
   const update = (time: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
+    const currentTime = timeLeftRef.current;
+    const dynamicSpeedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
+
     // Bepaal de actuele lanceerinterval met dynamische versnelling
     // Lager interval = snellere lancering
     const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
@@ -274,22 +277,17 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
       // Gebruik de dynamische interval
       if (time - lastLaunchRef.current > currentLaunchInterval) { 
         const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
-
-    const currentTime = timeLeftRef.current;
-
-    const speedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
-
         lastLaunchRef.current = time - drift; 
-        
         spawnFirework(canvas.width, canvas.height);
       }
     }
 
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING || fw.status === FireworkStatus.WET || fw.status === FireworkStatus.DUD) {
-        fw.pos.x += fw.vel.x * speedMultiplier;
-        fw.pos.y += fw.vel.y * speedMultiplier;
-        fw.vel.y += GRAVITY * speedMultiplier;
+        
+        fw.pos.x += fw.vel.x * dynamicSpeedMultiplier;
+        fw.pos.y += fw.vel.y * dynamicSpeedMultiplier;
+        fw.vel.y += GRAVITY * dynamicSpeedMultiplier;
 
         if (frameCountRef.current % 3 === 0 && fw.status === FireworkStatus.RISING) {
             fw.trail.push({ ...fw.pos });
