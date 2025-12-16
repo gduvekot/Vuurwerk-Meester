@@ -14,6 +14,8 @@ import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import Leaderboard from './components/Leaderboard';
+import Achievements from './components/Achievements';
+import { getAchievements, evaluateEndOfGame, getMeta } from './utils/achievements';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 audioManager.loadTrack('./audio/song.mp3')
@@ -35,6 +37,8 @@ const App: React.FC = () => {
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerRank, setPlayerRank] = useState<number | undefined>(undefined);
+  const [achievements, setAchievements] = useState(() => getAchievements());
+  const [showAchievements, setShowAchievements] = useState(false);
 
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
@@ -90,6 +94,13 @@ const App: React.FC = () => {
   };
 
   const endGame = () => {
+    // determine whether the player completed the full run
+    const completedFullRun = timeLeft <= 0;
+
+    // evaluate and persist achievements based on stats
+    const updated = evaluateEndOfGame(stats, completedFullRun);
+    setAchievements(updated);
+
     setGameState(GameState.GAME_OVER);
     audioManager.stop();
     if (timerRef.current) clearInterval(timerRef.current);
@@ -255,7 +266,7 @@ const App: React.FC = () => {
       />
 
       {gameState === GameState.MENU && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm">
 
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
@@ -355,9 +366,21 @@ const App: React.FC = () => {
             >
               🏆 LEADERBOARD
             </button>
+            
           </div>
 
         </div>
+      )}
+
+      {/* Icon-only achievements button bottom-right (visible in menu) */}
+      {gameState === GameState.MENU && (
+        <button
+          onClick={() => setShowAchievements(true)}
+          aria-label="Achievements"
+          className="absolute bottom-6 right-6 z-50 pointer-events-auto w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+        >
+          🎖
+        </button>
       )}
 
 
@@ -386,6 +409,13 @@ const App: React.FC = () => {
           entries={leaderboard}
           playerRank={playerRank}
           onBack={handleBackToMenu}
+        />
+      )}
+
+      {showAchievements && (
+        <Achievements
+          achievements={achievements}
+          onClose={() => setShowAchievements(false)}
         />
       )}
     </div>

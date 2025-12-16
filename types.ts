@@ -73,3 +73,15 @@ export interface LeaderboardEntry {
   accuracy: number;
   timestamp: number;
 }
+
+export interface Achievement {
+  id: string;
+  key: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt?: number | null;
+  // for achievements that require multiple games or counts
+  progress?: number;
+  goal?: number;
+}
