@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// GEWIJZIGDE IMPORTS: Alle constanten die we nodig hebben
-import { 
-  FIREWORK_COLORS, 
-  GAME_DURATION_MS, 
-  COMBO_MULTIPLIER_STEP, 
-  BASE_LAUNCH_INTERVAL_MS, 
-  LAUNCH_MODIFIERS, 
-  Difficulty 
-} from './constants'; 
+import { FIREWORK_COLORS } from './constants';
 
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import { GameState, ScoreStats } from './types';
+import { GAME_DURATION_MS, COMBO_MULTIPLIER_STEP } from './constants';
 import { audioManager } from './utils/audio';
 audioManager.loadTrack('./audio/song.mp3')
 const App: React.FC = () => {
@@ -28,11 +21,9 @@ const App: React.FC = () => {
     perfects: 0
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
-  const [paused, setPaused] = useState(false);
   
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
 
   const [selectedColors, setSelectedColors] = useState<string[]>([
     '#ef4444',
@@ -42,20 +33,8 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
-  // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
-  
-  // Ref voor de gekozen basisinterval
-  const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
-
 
   const startGame = () => {
-    // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
-    const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
-    baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
-    setSpeedMultiplier(1.0); // Reset de dynamische versneller
-    
     setStats({
       score: 0,
       combo: 0,
@@ -66,7 +45,6 @@ const App: React.FC = () => {
     });
     setTimeLeft(GAME_DURATION_MS / 1000);
     
-    setPaused(false);
     audioManager.resume();
     audioManager.start();
     
@@ -76,81 +54,26 @@ const App: React.FC = () => {
   const endGame = () => {
     setGameState(GameState.GAME_OVER);
     audioManager.stop();
-    setPaused(false);
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const setPausedState = (p: boolean) => {
-    setPaused(p);
-    if (p) audioManager.pause();
-    else audioManager.resume();
-  };
-
-  const handleStopFromPause = () => {
-    setPausedState(false);
-    endGame();
-  };
-
   useEffect(() => {
-    // FUNCTIE: Berekent de dynamische versneller (agressiever in de laatste 15s)
-    const calculateSpeedMultiplier = (remainingTimeSeconds: number): number => {
-      if (remainingTimeSeconds > 15) {
-        return 1.0;  // Normale snelheid
-      } else if (remainingTimeSeconds > 10) {
-        return 1.35; // Versnelling 1 (35% sneller)
-      } else if (remainingTimeSeconds > 5) {
-        return 1.8;  // Versnelling 2 (80% sneller)
-      } else if (remainingTimeSeconds > 0) {
-        return 2.5;  // Versnelling 3 (150% sneller - CHAOS!)
-      }
-      return 1.0;
-    };
-    
-    // Start or stop the timer depending on gameState and paused
-    if (gameState === GameState.PLAYING && !paused) {
-      // calculate startTime so remaining continues from current `timeLeft`
-      startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
+    if (gameState === GameState.PLAYING) {
+      const startTime = Date.now();
       timerRef.current = window.setInterval(() => {
-        if (!startTimeRef.current) return;
-        const elapsed = Date.now() - startTimeRef.current;
+        const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
-
-        // Pas dynamische snelheidsaanpassing toe
-        const newMultiplier = calculateSpeedMultiplier(remaining);
-        if (newMultiplier !== speedMultiplier) {
-          setSpeedMultiplier(newMultiplier);
-        }
-
+        
         if (remaining <= 0) {
           endGame();
         }
       }, 100);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
     }
-
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState, paused, timeLeft, endGame, speedMultiplier]); // speedMultiplier is toegevoegd als dependency
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && gameState === GameState.PLAYING) {
-        setPausedState(!paused);
-      }
-    };
-
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [paused, gameState]);
+  }, [gameState]);
 
   const handleScoreUpdate = (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => {
     setStats(prev => {
@@ -204,21 +127,12 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
-        paused={paused}
-        // DE NIEUWE PROPS!
-        baseLaunchInterval={baseGameIntervalRef.current} 
-        speedMultiplier={speedMultiplier}
-        selectedDifficulty={selectedDifficulty} 
+        timeLeft={timeLeft} 
       />
 
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
           
-          <img
-            src="/img/logo.png"
-            alt="Scalda logo"
-            className="w-32 md:w-40 mb-6 drop-shadow-xl"
-          />
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
           </h1>
@@ -230,30 +144,6 @@ const App: React.FC = () => {
             <strong>SPATIE</strong>.
           </p>
 
-          {/* 🎯 Selectie moeilijkheidsgraad (NIEUW) */}
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <p className="text-slate-300 font-semibold">
-              Kies moeilijkheidsgraad
-            </p>
-
-            <div className="flex gap-4 mt-3">
-              {Object.values(Difficulty).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setSelectedDifficulty(d)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition
-                    ${
-                      selectedDifficulty === d
-                        ? 'bg-violet-600 text-white shadow-lg'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-          
           {/* 🎨 KLEURKEUZE */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <p className="text-slate-300 font-semibold">
@@ -321,10 +211,7 @@ const App: React.FC = () => {
         <UIOverlay 
           stats={stats} 
           timeLeft={timeLeft} 
-          lastFeedback={lastFeedback}
-          paused={paused}
-          onTogglePause={(p?: boolean) => setPausedState(typeof p === 'boolean' ? p : !paused)}
-          onStop={handleStopFromPause}
+          lastFeedback={lastFeedback} 
         />
       )}
 

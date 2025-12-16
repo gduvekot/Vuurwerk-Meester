@@ -29,7 +29,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, pa
           </div>
         </div>
       </div>
-      <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+      <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
          {lastFeedback && (
              <div className="text-4xl md:text-6xl font-black text-white italic drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] animate-bounce tracking-wider">
                  {lastFeedback}

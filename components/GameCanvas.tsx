@@ -39,7 +39,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   paused = false,
   baseLaunchInterval, 
   speedMultiplier,    
-  selectedDifficulty // Ontvang de prop
+  selectedDifficulty, // Ontvang de prop
+  timeLeft
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
@@ -50,6 +51,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastTimeRef = useRef<number>(0);
   const lastLaunchRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
+
+  const timeLeftRef = useRef(timeLeft);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
 
   const TEXT_CHANCE = 0.2; 
  const TEXT_WORDS = ['CHARLIE KIRK']; 
@@ -266,6 +274,11 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
       // Gebruik de dynamische interval
       if (time - lastLaunchRef.current > currentLaunchInterval) { 
         const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
+
+    const currentTime = timeLeftRef.current;
+
+    const speedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
+
         lastLaunchRef.current = time - drift; 
         
         spawnFirework(canvas.width, canvas.height);
@@ -274,9 +287,9 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING || fw.status === FireworkStatus.WET || fw.status === FireworkStatus.DUD) {
-        fw.pos.x += fw.vel.x;
-        fw.pos.y += fw.vel.y;
-        fw.vel.y += GRAVITY;
+        fw.pos.x += fw.vel.x * speedMultiplier;
+        fw.pos.y += fw.vel.y * speedMultiplier;
+        fw.vel.y += GRAVITY * speedMultiplier;
 
         if (frameCountRef.current % 3 === 0 && fw.status === FireworkStatus.RISING) {
             fw.trail.push({ ...fw.pos });
