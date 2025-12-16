@@ -8,6 +8,7 @@ class AudioManager {
   private nextNoteTime: number = 0;
   private timerID: number | null = null;
   private beatCount: number = 0;
+  private loop: boolean = false;
   private lookahead: number = 25.0; 
   private scheduleAheadTime: number = 0.1; 
   private bpm: number = 128;
@@ -65,10 +66,15 @@ class AudioManager {
     this.beatCount = 0;
     this.sourceNode = this.ctx.createBufferSource();
     this.sourceNode.buffer = this.audioBuffer;
+    this.sourceNode.loop = this.loop;
     this.sourceNode.connect(this.ctx.destination);
     this.sourceNode.start(0);
     this.nextNoteTime = this.ctx.currentTime;
     this.scheduler();
+  }
+
+  public setLoop(enabled: boolean) {
+    this.loop = !!enabled;
   }
 
   public stop() {

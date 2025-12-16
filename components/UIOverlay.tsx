@@ -8,9 +8,10 @@ interface UIOverlayProps {
   paused?: boolean;
   onTogglePause?: (p?: boolean) => void;
   onStop?: () => void;
+  practiceMode?: boolean;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, paused = false, onTogglePause, onStop }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, paused = false, onTogglePause, onStop, practiceMode = false }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-6 flex flex-col justify-between">
       <div className="flex justify-between items-start">
@@ -23,11 +24,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, pa
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
-          <div className={`text-4xl font-bold font-mono drop-shadow-lg ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-            {Math.ceil(timeLeft)}s
+        {!practiceMode && (
+          <div className="flex flex-col items-end gap-1">
+            <div className={`text-4xl font-bold font-mono drop-shadow-lg ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+              {Math.ceil(timeLeft)}s
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
          {lastFeedback && (

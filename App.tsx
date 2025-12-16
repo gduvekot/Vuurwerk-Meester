@@ -16,7 +16,9 @@ import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import Leaderboard from './components/Leaderboard';
 import Achievements from './components/Achievements';
-import { getAchievements, evaluateEndOfGame, getMeta } from './utils/achievements';
+import { getAchievements, evaluateEndOfGame, getMeta, resetAchievementsAndMeta } from './utils/achievements';
+import TutorialModal from './components/TutorialModal';
+import AdvancedModal from './components/AdvancedModal';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 const SONGS = [
@@ -49,6 +51,10 @@ const App: React.FC = () => {
   const [achievements, setAchievements] = useState(() => getAchievements());
   const [showAchievements, setShowAchievements] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(false);
+  const [loopTrack, setLoopTrack] = useState(false);
 
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
@@ -113,42 +119,30 @@ const App: React.FC = () => {
     });
 
     try {
+      if (!practiceMode) {
         console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
-        // set song bpm
         audioManager.setBpm(selectedSong.bpm);
-        
-
         setCurrentBpm(selectedSong.bpm);
         updateSongSettings(selectedSong.bpm, selectedSong.delay);
-        // load track
         await audioManager.loadTrack(selectedSong.url);
-      
         setTimeLeft(GAME_DURATION_MS / 1000);
-      
         audioManager.resume();
-      
-
 
         setTimeout(() => {
-            // Nu pas de muziek starten
-            audioManager.start();
-            
-            // En NU pas het spel op 'PLAYING' zetten
-            // Zodat de timer en de game loop synchroon lopen met de muziek
-            setGameState(GameState.PLAYING);
-            
+          audioManager.start();
+          setGameState(GameState.PLAYING);
         }, selectedSong.delay || 0);
-
-
+      } else {
+        // Practice mode: geen muziek, geen timer
+        setTimeLeft(0);
         setGameState(GameState.PLAYING);
+      }
     } catch (error) {
-        console.error("Fout:", error);
-        alert("Kon track niet laden.");
+      console.error("Fout:", error);
+      alert("Kon track niet laden.");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-
-    setGameState(GameState.PLAYING);
   };
 
   const endGame = () => {
@@ -273,8 +267,8 @@ const App: React.FC = () => {
       return 1.0;
     };
 
-    // Start or stop the timer depending on gameState and paused
-    if (gameState === GameState.PLAYING && !paused) {
+    // Start or stop the timer depending on gameState, paused and practiceMode
+    if (gameState === GameState.PLAYING && !paused && !practiceMode) {
       // calculate startTime so remaining continues from current `timeLeft`
       startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
       timerRef.current = window.setInterval(() => {
@@ -295,8 +289,7 @@ const App: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-
-  }, [gameState, paused, timeLeft, endGame, speedMultiplier]); // speedMultiplier is toegevoegd als dependency
+  }, [gameState, paused, timeLeft, endGame, speedMultiplier, practiceMode]); // speedMultiplier is toegevoegd als dependency
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -316,6 +309,10 @@ const App: React.FC = () => {
       audioManager.resume();
     }
   }, [paused]);
+
+  useEffect(() => {
+    audioManager.setLoop(loopTrack);
+  }, [loopTrack]);
 
   const handleScoreUpdate = (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => {
     setStats(prev => {
@@ -474,7 +471,36 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Icon-only achievements button bottom-right (visible in menu) */}
+      {gameState === GameState.MENU && (
+        <div className="absolute bottom-6 left-6 z-50 pointer-events-auto flex items-center gap-3">
+          <button
+            onClick={() => setShowTutorial(true)}
+            aria-label="Tutorial"
+            className="w-12 h-12 rounded-full bg-slate-700 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+          >
+            ❓
+          </button>
+
+          <button
+            onClick={() => {
+              setPracticeMode(p => !p);
+            }}
+            aria-label="Practice"
+            className={`w-12 h-12 rounded-full text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition ${practiceMode ? 'bg-emerald-600' : 'bg-slate-700'}`}
+          >
+            🧪
+          </button>
+
+          <button
+            onClick={() => setShowAdvanced(true)}
+            aria-label="Advanced"
+            className="w-12 h-12 rounded-full bg-slate-700 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+          >
+            ⚙️
+          </button>
+        </div>
+      )}
+
       {gameState === GameState.MENU && (
         <div className="absolute bottom-6 right-6 z-50 pointer-events-auto flex items-center gap-3">
           <button
@@ -617,21 +643,36 @@ const App: React.FC = () => {
 
 
       {gameState === GameState.PLAYING && (
-        <UIOverlay
-          stats={stats}
-          timeLeft={timeLeft}
-          lastFeedback={lastFeedback}
-          paused={paused}
-          onTogglePause={setPausedState}
-          onStop={handleStopGame}
-        />
+        <>
+          <UIOverlay
+            stats={stats}
+            timeLeft={timeLeft}
+            lastFeedback={lastFeedback}
+            paused={paused}
+            onTogglePause={setPausedState}
+            onStop={handleStopGame}
+            practiceMode={practiceMode}
+          />
+
+          {practiceMode && (
+            <div className="absolute top-6 right-6 z-50 pointer-events-auto">
+              <button
+                onClick={handleStopGame}
+                aria-label="Stop"
+                className="px-4 py-2 bg-red-600 text-white rounded-full font-bold shadow-lg hover:scale-105 transition"
+              >
+                STOP
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {gameState === GameState.GAME_OVER && (
         <GameOverModal
           stats={stats}
           onRestart={startGame}
-          onViewLeaderboard={handleSaveToLeaderboard}
+          onViewLeaderboard={practiceMode ? (name: string) => alert('Oefenmodus: niet opslaan naar leaderboard') : handleSaveToLeaderboard}
           onBackToMenu={handleBackToMenu}
         />
       )}
@@ -648,6 +689,58 @@ const App: React.FC = () => {
         <Achievements
           achievements={achievements}
           onClose={() => setShowAchievements(false)}
+        />
+      )}
+
+      {showTutorial && (
+        <TutorialModal onClose={() => setShowTutorial(false)} />
+      )}
+
+      {showAdvanced && (
+        <AdvancedModal
+          onClose={() => setShowAdvanced(false)}
+          onReset={() => {
+            try {
+              localStorage.removeItem('vuurwerk-leaderboard');
+              resetAchievementsAndMeta();
+              setLeaderboard([]);
+              setAchievements(getAchievements());
+              alert('Data gereset');
+            } catch (e) {
+              alert('Reset mislukt');
+            }
+          }}
+          onExport={() => {
+            try {
+              const data = { leaderboard, achievements };
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'vuurwerk-export.json';
+              a.click();
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              alert('Export mislukt');
+            }
+          }}
+          onImport={(text) => {
+            try {
+              const parsed = JSON.parse(text);
+              if (parsed.leaderboard) {
+                localStorage.setItem('vuurwerk-leaderboard', JSON.stringify(parsed.leaderboard));
+                setLeaderboard(parsed.leaderboard);
+              }
+              if (parsed.achievements) {
+                localStorage.setItem('vuurwerk-achievements', JSON.stringify(parsed.achievements));
+                setAchievements(getAchievements());
+              }
+              alert('Import geslaagd');
+            } catch (e) {
+              alert('Import mislukt');
+            }
+          }}
+          achievements={achievements}
         />
       )}
     </div>
