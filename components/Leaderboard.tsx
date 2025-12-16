@@ -88,10 +88,43 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ entries, playerRank, onBack }
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-800/50 p-4 rounded-b-2xl border-t border-slate-700">
+        <div className="bg-slate-800/50 p-4 rounded-b-2xl border-t border-slate-700 flex gap-2 items-center">
+          <button
+            onClick={() => {
+              try {
+                const json = JSON.stringify(entries);
+                navigator.clipboard.writeText(json);
+                alert('Leaderboard gekopieerd naar klembord');
+              } catch (e) {
+                alert('Kopiëren mislukt');
+              }
+            }}
+            className="px-4 py-2 bg-indigo-600 rounded-md text-white"
+          >
+            Kopieer
+          </button>
+
+          <button
+            onClick={() => {
+              if ((navigator as any).share) {
+                (navigator as any).share({
+                  title: 'Leaderboard',
+                  text: 'Bekijk mijn scores!',
+                }).catch(() => {});
+              } else {
+                alert('Delen niet ondersteund op dit apparaat');
+              }
+            }}
+            className="px-4 py-2 bg-emerald-600 rounded-md text-white"
+          >
+            Deel
+          </button>
+
+          <div className="flex-1" />
+
           <button
             onClick={onBack}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-4 py-2 rounded-lg shadow-lg transform transition active:scale-95"
           >
             Terug naar Menu
           </button>
