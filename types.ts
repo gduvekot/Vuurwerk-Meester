@@ -1,7 +1,8 @@
 export enum GameState {
   MENU = 'MENU',
   PLAYING = 'PLAYING',
-  GAME_OVER = 'GAME_OVER'
+  GAME_OVER = 'GAME_OVER',
+  LEADERBOARD = 'LEADERBOARD'
 }
 
 export interface Coordinates {
@@ -61,4 +62,14 @@ export interface ScoreStats {
 export interface JudgeResult {
   rankTitle: string;
   critique: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  score: number;
+  maxCombo: number;
+  perfects: number;
+  accuracy: number;
+  timestamp: number;
 }

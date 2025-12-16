@@ -13,7 +13,8 @@ import {
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
-import { GameState, ScoreStats } from './types';
+import Leaderboard from './components/Leaderboard';
+import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 audioManager.loadTrack('./audio/song.mp3')
 const App: React.FC = () => {
@@ -30,6 +31,10 @@ const App: React.FC = () => {
     perfects: 0
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
+
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [playerRank, setPlayerRank] = useState<number | undefined>(undefined);
 
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
@@ -48,6 +53,18 @@ const App: React.FC = () => {
 
   // Ref voor de gekozen basisinterval
   const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
+
+  // Load leaderboard from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('vuurwerk-leaderboard');
+    if (saved) {
+      try {
+        setLeaderboard(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load leaderboard:', e);
+      }
+    }
+  }, []);
 
 
   const startGame = () => {
@@ -74,6 +91,54 @@ const App: React.FC = () => {
 
   const endGame = () => {
     setGameState(GameState.GAME_OVER);
+    audioManager.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handleSaveToLeaderboard = (playerName: string) => {
+    const accuracy = stats.hits + stats.misses > 0 
+      ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100) 
+      : 0;
+
+    const newEntry: LeaderboardEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: playerName,
+      score: stats.score,
+      maxCombo: stats.maxCombo,
+      perfects: stats.perfects,
+      accuracy: accuracy,
+      timestamp: Date.now()
+    };
+
+    const updatedLeaderboard = [...leaderboard, newEntry];
+    setLeaderboard(updatedLeaderboard);
+    
+    // Save to localStorage
+    localStorage.setItem('vuurwerk-leaderboard', JSON.stringify(updatedLeaderboard));
+
+    // Find and set player rank (0-indexed)
+    const sortedByScore = updatedLeaderboard
+      .sort((a, b) => b.score - a.score);
+    const rank = sortedByScore.findIndex(e => e.id === newEntry.id);
+    setPlayerRank(rank);
+
+    // Show leaderboard
+    setGameState(GameState.LEADERBOARD);
+  };
+
+  const handleBackToMenu = () => {
+    setGameState(GameState.MENU);
+    setPlayerRank(undefined);
+  };
+
+  const handleViewLeaderboard = () => {
+    setGameState(GameState.LEADERBOARD);
+    setPlayerRank(undefined);
+  };
+
+  const handleStopGame = () => {
+    setGameState(GameState.GAME_OVER);
+    setPausedState(false);
     audioManager.stop();
     if (timerRef.current) clearInterval(timerRef.current);
   };
@@ -272,17 +337,25 @@ const App: React.FC = () => {
               Voeg kleur toe
             </button>
           </div><br></br>
-          <button
-            onClick={startGame}
-            disabled={selectedColors.length === 0}
-            className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
-              ${selectedColors.length === 0
-                ? 'bg-slate-600 cursor-not-allowed'
-                : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
-              }`}
-          >
-            START SHOW 🔊
-          </button>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <button
+              onClick={startGame}
+              disabled={selectedColors.length === 0}
+              className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
+                ${selectedColors.length === 0
+                  ? 'bg-slate-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
+                }`}
+            >
+              START SHOW 🔊
+            </button>
+            <button
+              onClick={handleViewLeaderboard}
+              className="px-12 py-3 rounded-full text-white font-bold text-lg transition hover:scale-105 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 shadow-[0_0_20px_rgba(217,119,6,0.4)]"
+            >
+              🏆 LEADERBOARD
+            </button>
+          </div>
 
         </div>
       )}
@@ -293,6 +366,9 @@ const App: React.FC = () => {
           stats={stats}
           timeLeft={timeLeft}
           lastFeedback={lastFeedback}
+          paused={paused}
+          onTogglePause={setPausedState}
+          onStop={handleStopGame}
         />
       )}
 
@@ -300,6 +376,16 @@ const App: React.FC = () => {
         <GameOverModal
           stats={stats}
           onRestart={startGame}
+          onViewLeaderboard={handleSaveToLeaderboard}
+          onBackToMenu={handleBackToMenu}
+        />
+      )}
+
+      {gameState === GameState.LEADERBOARD && (
+        <Leaderboard
+          entries={leaderboard}
+          playerRank={playerRank}
+          onBack={handleBackToMenu}
         />
       )}
     </div>
