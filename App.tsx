@@ -42,6 +42,12 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
+  const [selectedTrailColors, setSelectedTrailColors] = useState<string[]>([
+    '#ffffff',
+  ]);
+
+  const [customTrailColor, setCustomTrailColor] = useState('#ffffff');
+
   // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
   const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
@@ -181,6 +187,7 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
+        trailColors={selectedTrailColors} 
         timeLeft={timeLeft}
         paused={paused}
         // DE NIEUWE PROPS!
@@ -226,7 +233,9 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* 🎨 KLEURKEUZE */}
+          <div className="flex flex-row gap-8 mb-8 justify-center">
+
+          {/* 🎨 KLEURKEUZE - VUURWERK */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <p className="text-slate-300 font-semibold">
               Kies je vuurwerkkleuren
@@ -251,9 +260,7 @@ const App: React.FC = () => {
                 Kies minimaal één kleur
               </p>
             )}
-          </div>
-
-          <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-3 mt-4">
             <input
               type="color"
               value={customColor}
@@ -271,12 +278,63 @@ const App: React.FC = () => {
             >
               Voeg kleur toe
             </button>
-          </div><br></br>
+          </div>
+          </div>
+
+
+          {/* 🎨 KLEURKEUZE - TRAAL */}
+
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <p className="text-slate-300 font-semibold">
+              Kies je traalleuren
+            </p>
+
+            <div className="flex gap-2 flex-wrap justify-center mt-3">
+              {selectedTrailColors.map(color => (
+                <button
+                  key={color}
+                  onClick={() =>
+                    setSelectedTrailColors(prev => prev.filter(c => c !== color))
+                  }
+                  className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
+                  style={{ backgroundColor: color }}
+                  title="Klik om te verwijderen"
+                />
+              ))}
+            </div>
+
+            {selectedTrailColors.length === 0 && (
+              <p className="text-red-400 text-sm">
+                Kies minimaal één kleur
+              </p>
+            )}
+            <div className="flex items-center gap-3 mt-4">
+            <input
+              type="color"
+              value={customTrailColor}
+              onChange={e => setCustomTrailColor(e.target.value)}
+              className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
+            />
+
+            <button
+              onClick={() => {
+                if (!selectedTrailColors.includes(customTrailColor)) {
+                  setSelectedTrailColors(prev => [...prev, customTrailColor]);
+                }
+              }}
+              className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
+            >
+              Voeg kleur toe
+            </button>
+          </div>
+          </div>
+          </div>
+
           <button
             onClick={startGame}
-            disabled={selectedColors.length === 0}
+            disabled={selectedTrailColors.length === 0}
             className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
-              ${selectedColors.length === 0
+              ${selectedTrailColors.length === 0
                 ? 'bg-slate-600 cursor-not-allowed'
                 : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
               }`}

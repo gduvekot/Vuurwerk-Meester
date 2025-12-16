@@ -24,6 +24,7 @@ interface GameCanvasProps {
   onScoreUpdate: (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => void;
   onGameOver: () => void;
   colors: string[];
+  trailColors: string[];
   paused?: boolean;
   // NIEUWE PROPS
   baseLaunchInterval: number; 
@@ -40,7 +41,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   baseLaunchInterval, 
   speedMultiplier,    
   selectedDifficulty, // Ontvang de prop
-  timeLeft
+  timeLeft,
+  trailColors
 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -196,6 +198,7 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
 
   const spawnFirework = (width: number, height: number) => {
+
     // 1. Bepaal de horizontale spreiding op basis van de moeilijkheidsgraad
     let horizontalSpread = 0.8; // Normaal: van 10% tot 90% van de breedte
     if (selectedDifficulty === Difficulty.HARD) {
@@ -224,14 +227,17 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
       vxRange = 0.5; // Langzamere zijwaartse drift
     }
 
+    const trailColor = trailColors[Math.floor(Math.random() * trailColors.length)];
+
     const fw: Firework = {
       id: Date.now() + Math.random(),
       pos: { x, y: startY },
       vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
+      trail: [],
+      trailColor,
       status: FireworkStatus.RISING,
-      apexY: targetHeight,
-      trail: []
+      apexY: targetHeight
     };
     fireworksRef.current.push(fw);
   };
@@ -335,7 +341,7 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+          ctx.strokeStyle = fw.trailColor ? fw.trailColor : 'rgba(255, 255, 255, 0.3)';
           ctx.lineWidth = 1;
           if(fw.trail.length > 0) {
               ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
