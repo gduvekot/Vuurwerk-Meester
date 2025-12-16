@@ -10,6 +10,17 @@ class AudioManager {
   private beatCount: number = 0;
   private lookahead: number = 25.0; 
   private scheduleAheadTime: number = 0.1; 
+  private bpm: number = 128;
+
+  public setBpm(newBpm: number) {
+    this.bpm = newBpm;
+    console.log("BPM gezet op:", this.bpm);
+  }
+  private nextNote() {
+    const secondsPerBeat = 60.0 / this.bpm;
+    this.nextNoteTime += secondsPerBeat;
+    this.beatCount++;
+  }
 
   constructor() {
   }
@@ -88,7 +99,7 @@ class AudioManager {
   }
 
   private nextNote() {
-    const secondsPerBeat = 60.0 / BPM;
+    const secondsPerBeat = 60.0 / this.bpm;
     this.nextNoteTime += secondsPerBeat;
     this.beatCount++;
   }

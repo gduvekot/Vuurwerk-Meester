@@ -17,7 +17,8 @@ import {
   PARTICLE_DECAY,
   LAUNCH_INTERVAL_MS,
   BEAT_MS,
-  FLIGHT_DURATION_BEATS
+  FLIGHT_DURATION_BEATS,
+  OFFSET
 } from '../constants';
 
 interface GameCanvasProps {

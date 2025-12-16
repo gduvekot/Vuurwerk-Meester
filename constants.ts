@@ -1,12 +1,13 @@
 export const GRAVITY = 0.15;
-export const BPM = 132;
-export const BEAT_MS = 60000 / BPM; 
-export const BEATS_PER_MEASURE = 4;
+export var BPM = 132;
+export var BEAT_MS = 60000 / BPM; 
+export var BEATS_PER_MEASURE = 4;
+export var OFFSET = 1;
 
-export const LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
+export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 export const FLIGHT_DURATION_BEATS = 2; 
 
-export const GAME_DURATION_MS = 100000; 
+export const GAME_DURATION_MS = 60000; 
 
 export const FIREWORK_COLORS = [
   { value: '#ef4444', class: 'bg-red-500' },
@@ -29,3 +30,15 @@ export const COMBO_MULTIPLIER_STEP = 0.1;
 export const EXPLOSION_PARTICLES = 40;
 export const EXPLOSION_SPEED = 4;
 export const PARTICLE_DECAY = 0.015;
+
+
+export const updateSongSettings = (newBpm: number, newOffset: number) => {
+    BPM = newBpm;
+    OFFSET = newOffset
+    
+    // Herbereken direct de afhankelijke waardes!
+    BEAT_MS = 60000 / newBpm;
+    LAUNCH_INTERVAL_MS = BEAT_MS * 2;
+    
+    console.log(`Spel settings geupdate: BPM ${newBpm}, BeatMS: ${Math.round(BEAT_MS)}`);
+};

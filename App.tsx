@@ -1,17 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { FIREWORK_COLORS } from './constants';
+import { FIREWORK_COLORS, updateSongSettings } from './constants';
 
+import { updateGameBpm} from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import { GameState, ScoreStats } from './types';
 import { GAME_DURATION_MS, COMBO_MULTIPLIER_STEP } from './constants';
 import { audioManager } from './utils/audio';
-audioManager.loadTrack('./audio/song.mp3')
+const SONGS = [
+  { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 400 },
+  { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 300 },
+  { id: '3', title: 'Progressive House 2', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 }
+];
+
 const App: React.FC = () => {
+  const [selectedSongUrl, setSelectedSongUrl] = useState<string>(SONGS[0].url);
+  const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
+  const [currentBpm, setCurrentBpm] = useState(128); //bpm
   const [stats, setStats] = useState<ScoreStats>({
     score: 0,
     combo: 0,
@@ -21,7 +30,7 @@ const App: React.FC = () => {
     perfects: 0
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
-  
+
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
@@ -34,7 +43,8 @@ const App: React.FC = () => {
   const [customColor, setCustomColor] = useState('#ff0000');
 
 
-  const startGame = () => {
+  const startGame =  async () => {
+    const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
     setStats({
       score: 0,
       combo: 0,
@@ -43,11 +53,43 @@ const App: React.FC = () => {
       misses: 0,
       perfects: 0
     });
-    setTimeLeft(GAME_DURATION_MS / 1000);
-    
-    audioManager.resume();
-    audioManager.start();
-    
+
+    try {
+        console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
+        // set song bpm
+        audioManager.setBpm(selectedSong.bpm);
+        
+
+        setCurrentBpm(selectedSong.bpm);
+        updateSongSettings(selectedSong.bpm, selectedSong.delay);
+        // load track
+        await audioManager.loadTrack(selectedSong.url);
+      
+        setTimeLeft(GAME_DURATION_MS / 1000);
+      
+        audioManager.resume();
+      
+
+
+        setTimeout(() => {
+            // Nu pas de muziek starten
+            audioManager.start();
+            
+            // En NU pas het spel op 'PLAYING' zetten
+            // Zodat de timer en de game loop synchroon lopen met de muziek
+            setGameState(GameState.PLAYING);
+            
+        }, selectedSong.delay || 0);
+
+
+        setGameState(GameState.PLAYING);
+    } catch (error) {
+        console.error("Fout:", error);
+        alert("Kon track niet laden.");
+    } finally {
+        setIsLoading(false);
+    }
+
     setGameState(GameState.PLAYING);
   };
 
@@ -64,7 +106,7 @@ const App: React.FC = () => {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
-        
+
         if (remaining <= 0) {
           endGame();
         }
@@ -96,7 +138,7 @@ const App: React.FC = () => {
         } else {
           showFeedback('GOED!');
         }
-        
+
         const multiplier = 1 + (newCombo * COMBO_MULTIPLIER_STEP);
         newScore += Math.round(points * multiplier);
       }
@@ -122,8 +164,8 @@ const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-900 select-none">
-      <GameCanvas 
-        gameState={gameState} 
+      <GameCanvas
+        gameState={gameState}
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
@@ -131,7 +173,7 @@ const App: React.FC = () => {
 
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
-          
+
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
           </h1>
@@ -143,6 +185,21 @@ const App: React.FC = () => {
             <strong>SPATIE</strong>.
           </p>
 
+          <div className="flex flex-col items-center gap-2 mb-8 w-full max-w-xs">
+            <label className="text-slate-300 font-semibold">Kies een track</label>
+
+            <select
+              value={selectedSongUrl}
+              onChange={(e) => setSelectedSongUrl(e.target.value)}
+              className="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:border-purple-500 focus:outline-none cursor-pointer hover:bg-slate-700 transition"
+            >
+              {SONGS.map((song) => (
+                <option key={song.id} value={song.url}>
+                  {song.title}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* 🎨 KLEURKEUZE */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <p className="text-slate-300 font-semibold">
@@ -193,10 +250,9 @@ const App: React.FC = () => {
             onClick={startGame}
             disabled={selectedColors.length === 0}
             className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
-              ${
-                selectedColors.length === 0
-                  ? 'bg-slate-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
+              ${selectedColors.length === 0
+                ? 'bg-slate-600 cursor-not-allowed'
+                : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
               }`}
           >
             START SHOW 🔊
@@ -207,17 +263,17 @@ const App: React.FC = () => {
 
 
       {gameState === GameState.PLAYING && (
-        <UIOverlay 
-          stats={stats} 
-          timeLeft={timeLeft} 
-          lastFeedback={lastFeedback} 
+        <UIOverlay
+          stats={stats}
+          timeLeft={timeLeft}
+          lastFeedback={lastFeedback}
         />
       )}
 
       {gameState === GameState.GAME_OVER && (
-        <GameOverModal 
-          stats={stats} 
-          onRestart={startGame} 
+        <GameOverModal
+          stats={stats}
+          onRestart={startGame}
         />
       )}
     </div>
