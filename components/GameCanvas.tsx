@@ -267,10 +267,6 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Bepaal de actuele lanceerinterval met dynamische versnelling
-    // Lager interval = snellere lancering
-    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
-
     const currentTime = timeLeftRef.current;
     const dynamicSpeedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
 
