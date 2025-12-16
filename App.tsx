@@ -60,6 +60,14 @@ const App: React.FC = () => {
     '#22c55e'
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
+
+  // Charlie easter egg refs/state
+  const charlieTitleClicks = useRef<number>(0);
+  const charlieTitleTimer = useRef<number | null>(null);
+  const keyBuffer = useRef<string>('');
+  const charlieCooldown = useRef<number>(0);
 
   // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
@@ -79,6 +87,13 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  const showToast = (text: string, duration = 3500) => {
+    setToast(text);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    // @ts-ignore
+    toastTimeoutRef.current = window.setTimeout(() => setToast(null), duration);
+  };
 
 
   const startGame =  async () => {
@@ -149,6 +164,43 @@ const App: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  // Title-click Charlie easter egg: 7 clicks within 3s
+  const handleTitleClick = () => {
+    charlieTitleClicks.current += 1;
+    if (charlieTitleTimer.current) clearTimeout(charlieTitleTimer.current as number);
+    // @ts-ignore
+    charlieTitleTimer.current = window.setTimeout(() => { charlieTitleClicks.current = 0; }, 3000);
+
+    if (charlieTitleClicks.current >= 7 && Date.now() - (charlieCooldown.current || 0) > 8000) {
+      charlieTitleClicks.current = 0;
+      charlieCooldown.current = Date.now();
+      const prev = selectedColors;
+      setSelectedColors(['#FFD700', '#FFEC8B', '#FFFFFF']);
+      showToast('Charlie Kirk approves your golden show!');
+      setTimeout(() => setSelectedColors(prev), 8000);
+    }
+  };
+
+  // Global key-sequence listener for 'CHARLIE' easter egg
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.toUpperCase();
+      if (k.length === 1 && /[A-Z]/.test(k)) {
+        keyBuffer.current = (keyBuffer.current + k).slice(-12);
+        if (keyBuffer.current.endsWith('CHARLIE') && Date.now() - (charlieCooldown.current || 0) > 8000) {
+          charlieCooldown.current = Date.now();
+          // reward/feedback: bonus points + feedback
+          setStats(prev => ({ ...prev, score: prev.score + 3000 }));
+          setLastFeedback('CHARLIE BLAST!');
+          showToast('Charlie Blast activated! +3000 score');
+          setTimeout(() => setLastFeedback(null), 1200);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleSaveToLeaderboard = (playerName: string) => {
     const accuracy = stats.hits + stats.misses > 0 
       ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100) 
@@ -163,6 +215,15 @@ const App: React.FC = () => {
       accuracy: accuracy,
       timestamp: Date.now()
     };
+
+    // Easter egg: if playerName contains 'charlie' or 'kirk', special behaviour
+    try {
+      const lower = playerName.toLowerCase();
+      if (lower.includes('charlie') || lower.includes('kirk')) {
+        newEntry.name = 'Charlie Kirk';
+        showToast('Charlie detected in leaderboard!');
+      }
+    } catch (e) {}
 
     const updatedLeaderboard = [...leaderboard, newEntry];
     setLeaderboard(updatedLeaderboard);
@@ -308,10 +369,16 @@ const App: React.FC = () => {
         selectedDifficulty={selectedDifficulty}
       />
 
+      {toast && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }} className="pointer-events-none">
+          <div className="bg-black/80 text-white px-4 py-2 rounded-md shadow-lg">{toast}</div>
+        </div>
+      )}
+
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm">
 
-          <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
+          <h1 onClick={handleTitleClick} className="cursor-pointer text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
           </h1>
 

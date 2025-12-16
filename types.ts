@@ -81,7 +81,7 @@ export interface Achievement {
   description: string;
   unlocked: boolean;
   unlockedAt?: number | null;
-  // for achievements that require multiple games or counts
+  
   progress?: number;
   goal?: number;
 }
