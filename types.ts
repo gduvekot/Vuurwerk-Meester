@@ -37,6 +37,7 @@ export interface Firework {
   status: FireworkStatus;
   apexY: number;   
   trail: Coordinates[];
+  trailColor: string;
 }
 
 export interface Particle {
