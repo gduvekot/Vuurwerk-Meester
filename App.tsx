@@ -11,7 +11,6 @@ import {
   updateSongSettings
 } from './constants';
 
-import { updateGameBpm } from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
@@ -834,75 +833,6 @@ const App: React.FC = () => {
           achievements={achievements}
         />
       )}
-            </button>
-            <button
-              onClick={handleViewLeaderboard}
-              className="px-12 py-3 rounded-full text-white font-bold text-lg transition hover:scale-105 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 shadow-[0_0_20px_rgba(217,119,6,0.4)]"
-            >
-              🏆 LEADERBOARD
-            </button>
-          </div>
-
-        </div> 
-        
-      )}
-
-{/* Icon-only achievements button bottom-right (visible in menu) */ }
-{
-  gameState === GameState.MENU && (
-    <button
-      onClick={() => setShowAchievements(true)}
-      aria-label="Achievements"
-      className="absolute bottom-6 right-6 z-50 pointer-events-auto w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
-    >
-      🎖
-    </button>
-  )
-}
-
-
-{
-  gameState === GameState.PLAYING && (
-    <UIOverlay
-      stats={stats}
-      timeLeft={timeLeft}
-      lastFeedback={lastFeedback}
-      paused={paused}
-      onTogglePause={setPausedState}
-      onStop={handleStopGame}
-    />
-  )
-}
-
-{
-  gameState === GameState.GAME_OVER && (
-    <GameOverModal
-      stats={stats}
-      onRestart={startGame}
-      onViewLeaderboard={handleSaveToLeaderboard}
-      onBackToMenu={handleBackToMenu}
-    />
-  )
-}
-
-{
-  gameState === GameState.LEADERBOARD && (
-    <Leaderboard
-      entries={leaderboard}
-      playerRank={playerRank}
-      onBack={handleBackToMenu}
-    />
-  )
-}
-
-{
-  showAchievements && (
-    <Achievements
-      achievements={achievements}
-      onClose={() => setShowAchievements(false)}
-    />
-  )
-}
     </div>
   );
 };
