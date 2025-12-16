@@ -11,7 +11,7 @@ import {
   updateSongSettings
 } from './constants';
 
-import { updateGameBpm} from './constants';
+import { updateGameBpm } from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
@@ -61,6 +61,12 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
+  const [selectedTrailColors, setSelectedTrailColors] = useState<string[]>([
+    '#ffffff',
+  ]);
+
+  const [customTrailColor, setCustomTrailColor] = useState('#ffffff');
+
   // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
   const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
@@ -81,7 +87,7 @@ const App: React.FC = () => {
   }, []);
 
 
-  const startGame =  async () => {
+  const startGame = async () => {
     const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
     // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
     const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
@@ -98,39 +104,39 @@ const App: React.FC = () => {
     });
 
     try {
-        console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
-        // set song bpm
-        audioManager.setBpm(selectedSong.bpm);
-        
-
-        setCurrentBpm(selectedSong.bpm);
-        updateSongSettings(selectedSong.bpm, selectedSong.delay);
-        // load track
-        await audioManager.loadTrack(selectedSong.url);
-      
-        setTimeLeft(GAME_DURATION_MS / 1000);
-      
-        audioManager.resume();
-      
+      console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
+      // set song bpm
+      audioManager.setBpm(selectedSong.bpm);
 
 
-        setTimeout(() => {
-            // Nu pas de muziek starten
-            audioManager.start();
-            
-            // En NU pas het spel op 'PLAYING' zetten
-            // Zodat de timer en de game loop synchroon lopen met de muziek
-            setGameState(GameState.PLAYING);
-            
-        }, selectedSong.delay || 0);
+      setCurrentBpm(selectedSong.bpm);
+      updateSongSettings(selectedSong.bpm, selectedSong.delay);
+      // load track
+      await audioManager.loadTrack(selectedSong.url);
+
+      setTimeLeft(GAME_DURATION_MS / 1000);
+
+      audioManager.resume();
 
 
+
+      setTimeout(() => {
+        // Nu pas de muziek starten
+        audioManager.start();
+
+        // En NU pas het spel op 'PLAYING' zetten
+        // Zodat de timer en de game loop synchroon lopen met de muziek
         setGameState(GameState.PLAYING);
+
+      }, selectedSong.delay || 0);
+
+
+      setGameState(GameState.PLAYING);
     } catch (error) {
-        console.error("Fout:", error);
-        alert("Kon track niet laden.");
+      console.error("Fout:", error);
+      alert("Kon track niet laden.");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
 
     setGameState(GameState.PLAYING);
@@ -150,8 +156,8 @@ const App: React.FC = () => {
   };
 
   const handleSaveToLeaderboard = (playerName: string) => {
-    const accuracy = stats.hits + stats.misses > 0 
-      ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100) 
+    const accuracy = stats.hits + stats.misses > 0
+      ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100)
       : 0;
 
     const newEntry: LeaderboardEntry = {
@@ -166,7 +172,7 @@ const App: React.FC = () => {
 
     const updatedLeaderboard = [...leaderboard, newEntry];
     setLeaderboard(updatedLeaderboard);
-    
+
     // Save to localStorage
     localStorage.setItem('vuurwerk-leaderboard', JSON.stringify(updatedLeaderboard));
 
@@ -300,6 +306,7 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
+        trailColors={selectedTrailColors}
         timeLeft={timeLeft}
         paused={paused}
         // DE NIEUWE PROPS!
@@ -308,7 +315,7 @@ const App: React.FC = () => {
         selectedDifficulty={selectedDifficulty}
       />
 
-      {gameState === GameState.MENU && (
+{gameState === GameState.MENU && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm">
 
           <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
@@ -337,52 +344,107 @@ const App: React.FC = () => {
               ))}
             </select>
           </div>
-          {/* 🎨 KLEURKEUZE */}
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <p className="text-slate-300 font-semibold">
-              Kies je vuurwerkkleuren
-            </p>
 
-            <div className="flex gap-2 flex-wrap justify-center mt-3">
-              {selectedColors.map(color => (
-                <button
-                  key={color}
-                  onClick={() =>
-                    setSelectedColors(prev => prev.filter(c => c !== color))
-                  }
-                  className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
-                  style={{ backgroundColor: color }}
-                  title="Klik om te verwijderen"
+          <div className="flex flex-row gap-8 mb-8 justify-center">
+
+            {/* 🎨 KLEURKEUZE - VUURWERK */}
+            <div className="flex flex-col items-center gap-3 mb-8">
+              <p className="text-slate-300 font-semibold">
+                Kies je vuurwerkkleuren
+              </p>
+
+              <div className="flex gap-2 flex-wrap justify-center mt-3">
+                {selectedColors.map(color => (
+                  <button
+                    key={color}
+                    onClick={() =>
+                      setSelectedColors(prev => prev.filter(c => c !== color))
+                    }
+                    className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
+                    style={{ backgroundColor: color }}
+                    title="Klik om te verwijderen"
+                  />
+                ))}
+              </div>
+
+              {selectedColors.length === 0 && (
+                <p className="text-red-400 text-sm">
+                  Kies minimaal één kleur
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-4">
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={e => setCustomColor(e.target.value)}
+                  className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
                 />
-              ))}
+
+                <button
+                  onClick={() => {
+                    if (!selectedColors.includes(customColor)) {
+                      setSelectedColors(prev => [...prev, customColor]);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
+                >
+                  Voeg kleur toe
+                </button>
+
+              </div>
             </div>
 
-            {selectedColors.length === 0 && (
-              <p className="text-red-400 text-sm">
-                Kies minimaal één kleur
+
+            {/* 🎨 KLEURKEUZE - TRAAL */}
+
+            <div className="flex flex-col items-center gap-3 mb-8">
+              <p className="text-slate-300 font-semibold">
+                Kies je traalleuren
               </p>
-            )}
-          </div>
 
-          <div className="flex items-center gap-3 mt-4">
-            <input
-              type="color"
-              value={customColor}
-              onChange={e => setCustomColor(e.target.value)}
-              className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
-            />
+              <div className="flex gap-2 flex-wrap justify-center mt-3">
+                {selectedTrailColors.map(color => (
+                  <button
+                    key={color}
+                    onClick={() =>
+                      setSelectedTrailColors(prev => prev.filter(c => c !== color))
+                    }
+                    className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
+                    style={{ backgroundColor: color }}
+                    title="Klik om te verwijderen"
+                  />
+                ))}
+              </div>
 
-            <button
-              onClick={() => {
-                if (!selectedColors.includes(customColor)) {
-                  setSelectedColors(prev => [...prev, customColor]);
-                }
-              }}
-              className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
-            >
-              Voeg kleur toe
-            </button>
-          </div><br></br>
+              {selectedTrailColors.length === 0 && (
+                <p className="text-red-400 text-sm">
+                  Kies minimaal één kleur
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-4">
+                <input
+                  type="color"
+                  value={customTrailColor}
+                  onChange={e => setCustomTrailColor(e.target.value)}
+                  className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
+                />
+
+                <button
+                  onClick={() => {
+                    if (!selectedTrailColors.includes(customTrailColor)) {
+                      setSelectedTrailColors(prev => [...prev, customTrailColor]);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
+                >
+                  Voeg kleur toe
+                </button>
+              </div>
+            </div>
+          </div> 
+          {/* CORRECTIE: Deze div sluit de flex-row container van de kleurensectie */}
+
+          <br></br>
           <div className="flex flex-col gap-3 w-full max-w-xs">
             <button
               onClick={startGame}
@@ -401,58 +463,68 @@ const App: React.FC = () => {
             >
               🏆 LEADERBOARD
             </button>
-            
           </div>
 
-        </div>
+        </div> 
+        
       )}
 
-      {/* Icon-only achievements button bottom-right (visible in menu) */}
-      {gameState === GameState.MENU && (
-        <button
-          onClick={() => setShowAchievements(true)}
-          aria-label="Achievements"
-          className="absolute bottom-6 right-6 z-50 pointer-events-auto w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
-        >
-          🎖
-        </button>
-      )}
+{/* Icon-only achievements button bottom-right (visible in menu) */ }
+{
+  gameState === GameState.MENU && (
+    <button
+      onClick={() => setShowAchievements(true)}
+      aria-label="Achievements"
+      className="absolute bottom-6 right-6 z-50 pointer-events-auto w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+    >
+      🎖
+    </button>
+  )
+}
 
 
-      {gameState === GameState.PLAYING && (
-        <UIOverlay
-          stats={stats}
-          timeLeft={timeLeft}
-          lastFeedback={lastFeedback}
-          paused={paused}
-          onTogglePause={setPausedState}
-          onStop={handleStopGame}
-        />
-      )}
+{
+  gameState === GameState.PLAYING && (
+    <UIOverlay
+      stats={stats}
+      timeLeft={timeLeft}
+      lastFeedback={lastFeedback}
+      paused={paused}
+      onTogglePause={setPausedState}
+      onStop={handleStopGame}
+    />
+  )
+}
 
-      {gameState === GameState.GAME_OVER && (
-        <GameOverModal
-          stats={stats}
-          onRestart={startGame}
-          onViewLeaderboard={handleSaveToLeaderboard}
-          onBackToMenu={handleBackToMenu}
-        />
-      )}
+{
+  gameState === GameState.GAME_OVER && (
+    <GameOverModal
+      stats={stats}
+      onRestart={startGame}
+      onViewLeaderboard={handleSaveToLeaderboard}
+      onBackToMenu={handleBackToMenu}
+    />
+  )
+}
 
-      {gameState === GameState.LEADERBOARD && (
-        <Leaderboard
-          entries={leaderboard}
-          playerRank={playerRank}
-          onBack={handleBackToMenu}
-        />
-      )}
+{
+  gameState === GameState.LEADERBOARD && (
+    <Leaderboard
+      entries={leaderboard}
+      playerRank={playerRank}
+      onBack={handleBackToMenu}
+    />
+  )
+}
 
-      {showAchievements && (
-        <Achievements
-          achievements={achievements}
-          onClose={() => setShowAchievements(false)}
-        />
-      )}
+{
+  showAchievements && (
+    <Achievements
+      achievements={achievements}
+      onClose={() => setShowAchievements(false)}
+    />
+  )
+}
     </div>
   );
 };
