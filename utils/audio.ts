@@ -52,6 +52,12 @@ class AudioManager {
     }
   }
 
+  public pause() {
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend();
+    }
+  }
+
   public start() {
     this.resume();
     if (this.isPlaying) return;

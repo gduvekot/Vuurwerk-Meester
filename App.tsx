@@ -1,17 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { FIREWORK_COLORS, updateSongSettings } from './constants';
+// GEWIJZIGDE IMPORTS: Alle constanten die we nodig hebben
+import {
+  FIREWORK_COLORS,
+  GAME_DURATION_MS,
+  COMBO_MULTIPLIER_STEP,
+  BASE_LAUNCH_INTERVAL_MS,
+  LAUNCH_MODIFIERS,
+  Difficulty,
+  updateSongSettings
+} from './constants';
 
 import { updateGameBpm} from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
 import { GameState, ScoreStats } from './types';
-import { GAME_DURATION_MS, COMBO_MULTIPLIER_STEP } from './constants';
 import { audioManager } from './utils/audio';
 const SONGS = [
   { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 400 },
-  { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 300 },
+  { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 10 },
   { id: '3', title: 'Progressive House 2', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 }
 ];
 
@@ -21,6 +29,8 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
   const [currentBpm, setCurrentBpm] = useState(128); //bpm
+  const [paused, setPausedState] = useState(false);
+  const startTimeRef = useRef<number>(0);
   const [stats, setStats] = useState<ScoreStats>({
     score: 0,
     combo: 0,
@@ -42,9 +52,21 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
+  // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
+
+  // Ref voor de gekozen basisinterval
+  const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
+
 
   const startGame =  async () => {
     const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
+    // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
+    const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
+    baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
+    setSpeedMultiplier(1.0); // Reset de dynamische versneller
+
     setStats({
       score: 0,
       combo: 0,
@@ -100,13 +122,34 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (gameState === GameState.PLAYING) {
-      const startTime = Date.now();
+    // FUNCTIE: Berekent de dynamische versneller (agressiever in de laatste 15s)
+    const calculateSpeedMultiplier = (remainingTimeSeconds: number): number => {
+      if (remainingTimeSeconds > 15) {
+        return 1.0;  // Normale snelheid
+      } else if (remainingTimeSeconds > 10) {
+        return 1.35; // Versnelling 1 (35% sneller)
+      } else if (remainingTimeSeconds > 5) {
+        return 1.8;  // Versnelling 2 (80% sneller)
+      } else if (remainingTimeSeconds > 0) {
+        return 2.5;  // Versnelling 3 (150% sneller - CHAOS!)
+      }
+      return 1.0;
+    };
+
+    // Start or stop the timer depending on gameState and paused
+    if (gameState === GameState.PLAYING && !paused) {
+      // calculate startTime so remaining continues from current `timeLeft`
+      startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
       timerRef.current = window.setInterval(() => {
-        const elapsed = Date.now() - startTime;
+        const elapsed = Date.now() - startTimeRef.current;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
 
+        // Pas dynamische snelheidsaanpassing toe
+        const newMultiplier = calculateSpeedMultiplier(remaining);
+        if (newMultiplier !== speedMultiplier) {
+          setSpeedMultiplier(newMultiplier);
+        }
         if (remaining <= 0) {
           endGame();
         }
@@ -115,7 +158,19 @@ const App: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState]);
+
+  }, [gameState, paused, timeLeft, endGame, speedMultiplier]); // speedMultiplier is toegevoegd als dependency
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && gameState === GameState.PLAYING) {
+        setPausedState(!paused);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [paused, gameState]);
 
   const handleScoreUpdate = (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => {
     setStats(prev => {
@@ -169,6 +224,12 @@ const App: React.FC = () => {
         onScoreUpdate={handleScoreUpdate}
         onGameOver={endGame}
         colors={selectedColors}
+        timeLeft={timeLeft}
+        paused={paused}
+        // DE NIEUWE PROPS!
+        baseLaunchInterval={baseGameIntervalRef.current}
+        speedMultiplier={speedMultiplier}
+        selectedDifficulty={selectedDifficulty}
       />
 
       {gameState === GameState.MENU && (

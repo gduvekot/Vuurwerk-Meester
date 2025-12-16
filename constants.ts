@@ -5,6 +5,21 @@ export var BEATS_PER_MEASURE = 4;
 export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
+// Moeilijkheidsgraden (Difficulty Levels)
+export enum Difficulty {
+  EASY = 'Makkelijk', 
+  NORMAL = 'Normaal', 
+  HARD = 'Moeilijk', 
+}
+
+// Lanceer-modificatoren. Lager getal = Kortere interval (sneller)
+export const LAUNCH_MODIFIERS = {
+  [Difficulty.EASY]: 1.8,  // 80% langzamer (makkelijker)
+  [Difficulty.NORMAL]: 1.0, // Normaal (basis)
+  [Difficulty.HARD]: 0.5,  // 50% sneller (zeer moeilijk)
+};
+
+export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2; // Hernoemd
 export const FLIGHT_DURATION_BEATS = 2; 
 
 export const GAME_DURATION_MS = 60000; 
