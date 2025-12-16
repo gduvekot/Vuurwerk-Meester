@@ -273,7 +273,7 @@ const createDoubleExplosion = (x: number, y: number, color: string) => {
 
     // Bepaal de actuele lanceerinterval met dynamische versnelling
     // Lager interval = snellere lancering
-    const currentLaunchInterval =  BEAT_MS / speedMultiplier;
+    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
       // Gebruik de dynamische interval

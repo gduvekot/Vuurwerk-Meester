@@ -29,6 +29,8 @@ const DEFAULT_ACHIEVEMENTS: Achievement[] = [
 
 export interface AchievementsMeta {
   gamesPlayed: number;
+  totalPerfects?: number;
+  totalScore?: number;
 }
 
 function loadAchievements(): Achievement[] {

@@ -11,7 +11,6 @@ import {
   updateSongSettings
 } from './constants';
 
-import { updateGameBpm} from './constants';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import GameOverModal from './components/GameOverModal';
@@ -49,6 +48,7 @@ const App: React.FC = () => {
   const [playerRank, setPlayerRank] = useState<number | undefined>(undefined);
   const [achievements, setAchievements] = useState(() => getAchievements());
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
 
   const timerRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
@@ -309,6 +309,14 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [paused, gameState]);
 
+  useEffect(() => {
+    if (paused) {
+      audioManager.pause();
+    } else {
+      audioManager.resume();
+    }
+  }, [paused]);
+
   const handleScoreUpdate = (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => {
     setStats(prev => {
       let newCombo = prev.combo;
@@ -363,7 +371,6 @@ const App: React.FC = () => {
         colors={selectedColors}
         timeLeft={timeLeft}
         paused={paused}
-        // DE NIEUWE PROPS!
         baseLaunchInterval={baseGameIntervalRef.current}
         speedMultiplier={speedMultiplier}
         selectedDifficulty={selectedDifficulty}
@@ -461,14 +468,7 @@ const App: React.FC = () => {
                 }`}
             >
               START SHOW 🔊
-            </button>
-            <button
-              onClick={handleViewLeaderboard}
-              className="px-12 py-3 rounded-full text-white font-bold text-lg transition hover:scale-105 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 shadow-[0_0_20px_rgba(217,119,6,0.4)]"
-            >
-              🏆 LEADERBOARD
-            </button>
-            
+            </button>            
           </div>
 
         </div>
@@ -476,13 +476,143 @@ const App: React.FC = () => {
 
       {/* Icon-only achievements button bottom-right (visible in menu) */}
       {gameState === GameState.MENU && (
-        <button
-          onClick={() => setShowAchievements(true)}
-          aria-label="Achievements"
-          className="absolute bottom-6 right-6 z-50 pointer-events-auto w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
-        >
-          🎖
-        </button>
+        <div className="absolute bottom-6 right-6 z-50 pointer-events-auto flex items-center gap-3">
+          <button
+            onClick={handleViewLeaderboard}
+            aria-label="Leaderboard"
+            className="w-12 h-12 rounded-full bg-amber-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+          >
+            🏆
+          </button>
+
+          <button
+            onClick={() => setShowCredits(true)}
+            aria-label="Credits"
+            className="w-12 h-12 rounded-full bg-slate-700 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+          >
+            🧾
+          </button>
+
+          <button
+            onClick={() => setShowAchievements(true)}
+            aria-label="Achievements"
+            className="w-12 h-12 rounded-full bg-sky-600 text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition"
+          >
+            🎖
+          </button>
+        </div>
+      )}
+
+      {showCredits && (
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-white">Credits</h2>
+              <button onClick={() => setShowCredits(false)} className="text-slate-300 hover:text-white">Sluiten</button>
+            </div>
+
+            <style>{`
+              .credits-viewport { height: 260px; overflow: hidden; position: relative; }
+              .credits-scroller { display: block; width: 100%; }
+              .credits-list { display: flex; flex-direction: column; gap: 18px; }
+              .credits-item { padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02); }
+              @keyframes credits-scroll { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
+              .credits-animate { animation: credits-scroll 18s linear infinite; }
+            `}</style>
+
+            <div className="credits-viewport mt-2">
+              <div className="credits-scroller credits-animate">
+                <div className="credits-list">
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Lead Design</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Gameplay & Mechanics</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Audio & Sound Design</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">UI / UX & Accessibility</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Visual Effects & Particles</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Achievements & Progression</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">QA, Balancing & Playtesting</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Build, DevOps & Packaging</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div><br></br>
+                </div>
+
+                <div className="credits-list" aria-hidden="true">
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Lead Design</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Gameplay & Mechanics</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Audio & Sound Design</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">UI / UX & Accessibility</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Visual Effects & Particles</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Achievements & Progression</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">QA, Balancing & Playtesting</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+
+                  <div className="credits-item">
+                    <div className="text-white font-semibold">Build, DevOps & Packaging</div>
+                    <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 text-right">
+              <button onClick={() => setShowCredits(false)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white">Sluiten</button>
+            </div>
+          </div>
+        </div>
       )}
 
 

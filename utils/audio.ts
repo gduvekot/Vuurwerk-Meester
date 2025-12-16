@@ -16,11 +16,6 @@ class AudioManager {
     this.bpm = newBpm;
     console.log("BPM gezet op:", this.bpm);
   }
-  private nextNote() {
-    const secondsPerBeat = 60.0 / this.bpm;
-    this.nextNoteTime += secondsPerBeat;
-    this.beatCount++;
-  }
 
   constructor() {
   }
