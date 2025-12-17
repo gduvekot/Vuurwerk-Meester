@@ -6,21 +6,27 @@ export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 
+// NIEUW: Difficulty settings
 export enum Difficulty {
   EASY = 'Makkelijk', 
   NORMAL = 'Normaal', 
   HARD = 'Moeilijk', 
+  EXTREME = 'CHAOS'
 }
 
+// Hoeveel sneller of trager het spel begint
 export const LAUNCH_MODIFIERS = {
-  [Difficulty.EASY]: 1.8,   
+  [Difficulty.EASY]: 1.5,   
   [Difficulty.NORMAL]: 1.0,  
-  [Difficulty.HARD]: 0.5,    
+  [Difficulty.HARD]: 0.7,
+  [Difficulty.EXTREME]: 0.4    
 };
 
+// NIEUW: Adaptieve constanten (combo maakt het sneller)
+export const COMBO_SPEED_DECREMENT_MS = 30; // 30ms sneller per combo punt
+export const MIN_LAUNCH_INTERVAL_MS = 250; // Maximale snelheid
 
 export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2;
-
 export const FLIGHT_DURATION_BEATS = 2; 
 
 export const GAME_DURATION_MS = 60000; 
