@@ -113,13 +113,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 const logoImagesRef = useRef<HTMLImageElement[]>([]);
 
 useEffect(() => {
-  const sources = ['/img/bram.jpg', '/img/rens.jpg'];
-  logoImagesRef.current = sources.map(src => {
+  const sources = ['/img/bram.jpg', '/img/rens.jpg', '/img/marlon.jpg'];
+  const loaded: HTMLImageElement[] = [];
+
+  sources.forEach(src => {
     const img = new Image();
     img.src = src;
-    return img;
+    img.onload = () => {
+      loaded.push(img);
+      logoImagesRef.current = [...loaded];
+    };
   });
 }, []);
+
 
 
   const createTextExplosion = (
@@ -170,10 +176,10 @@ useEffect(() => {
 const createLogoExplosion = (x: number, y: number) => {
   if (logoImagesRef.current.length === 0) return;
 
-const image =
-  logoImagesRef.current[
-    Math.floor(Math.random() * logoImagesRef.current.length)
-  ];
+  const image =
+    logoImagesRef.current[
+      Math.floor(Math.random() * logoImagesRef.current.length)
+    ];
 
   const count = 40;
   const speed = 4;
