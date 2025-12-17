@@ -110,13 +110,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return points;
   };
 
-  const logoImageRef = useRef<HTMLImageElement | null>(null);
+const logoImagesRef = useRef<HTMLImageElement[]>([]);
 
 useEffect(() => {
-  const img = new Image();
-  img.src = '/img/bram.jpg';
-  logoImageRef.current = img;
+  const sources = ['/img/bram.jpg', '/img/rens.jpg'];
+  logoImagesRef.current = sources.map(src => {
+    const img = new Image();
+    img.src = src;
+    return img;
+  });
 }, []);
+
 
   const createTextExplosion = (
     text: string,
@@ -163,8 +167,13 @@ useEffect(() => {
     }
   };
 
-  const createLogoExplosion = (x: number, y: number) => {
-  if (!logoImageRef.current) return;
+const createLogoExplosion = (x: number, y: number) => {
+  if (logoImagesRef.current.length === 0) return;
+
+const image =
+  logoImagesRef.current[
+    Math.floor(Math.random() * logoImagesRef.current.length)
+  ];
 
   const count = 40;
   const speed = 4;
@@ -182,12 +191,13 @@ useEffect(() => {
       },
       life: 1,
       maxLife: 1,
-      size: 18, // logo grootte
+      size: 100,
       decay: PARTICLE_DECAY * 0.7,
-      image: logoImageRef.current // 👈 KEY
+      image
     });
   }
 };
+
 
 
   const createSpiralExplosion = (x: number, y: number, color: string) => {
@@ -492,7 +502,6 @@ const handleTrigger = useCallback(() => {
     const r = Math.random();
 
     if (r < 0.15) {
-      // 🖼️ Logo-explosie
       createLogoExplosion(target.pos.x, target.pos.y);
     } else if (r < 0.35) {
       createTextExplosion(
