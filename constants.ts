@@ -6,21 +6,23 @@ export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 
-// 🎯 MOEILIJKHEIDSGRADEN
+
 export enum Difficulty {
   EASY = 'Makkelijk', 
   NORMAL = 'Normaal', 
   HARD = 'Moeilijk', 
 }
 
-// 🚀 LANCEERSNELHEID MODIFICATOREN
+
 export const LAUNCH_MODIFIERS = {
-  [Difficulty.EASY]: 1.8,    // 80% langzamer (makkelijker)
-  [Difficulty.NORMAL]: 1.0,  // Normaal (basis)
-  [Difficulty.HARD]: 0.5,    // 50% sneller (zeer moeilijk)
+  [Difficulty.EASY]: 1.5,    
+  [Difficulty.NORMAL]: 1.0, 
+  [Difficulty.HARD]: 0.7,    
 };
 
+
 export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2;
+
 export const FLIGHT_DURATION_BEATS = 2; 
 
 export const GAME_DURATION_MS = 60000; 
@@ -35,7 +37,6 @@ export const FIREWORK_COLORS = [
   { value: '#ec4899', class: 'bg-pink-500' },
   { value: '#ffffff', class: 'bg-white' }
 ];
-
 
 export const APEX_THRESHOLD = 0.45; 
 export const LATE_THRESHOLD = 2.0; 

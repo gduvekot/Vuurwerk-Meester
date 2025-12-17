@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// GEWIJZIGDE IMPORTS: Alle constanten die we nodig hebben
 import {
   FIREWORK_COLORS,
   GAME_DURATION_MS,
@@ -21,6 +20,7 @@ import TutorialModal from './components/TutorialModal';
 import AdvancedModal from './components/AdvancedModal';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
+
 const SONGS = [
   { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 650 },
   { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 10 },
@@ -33,7 +33,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
-  const [currentBpm, setCurrentBpm] = useState(128); //bpm
+  const [currentBpm, setCurrentBpm] = useState(128);
   const [paused, setPausedState] = useState(false);
   const [bestScore, setBestScore] = useState<number>(0);
   const startTimeRef = useRef<number>(0);
@@ -48,7 +48,6 @@ const App: React.FC = () => {
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
 
-  // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerRank, setPlayerRank] = useState<number | undefined>(undefined);
   const [achievements, setAchievements] = useState(() => getAchievements());
@@ -72,7 +71,6 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
-  // Charlie easter egg refs/state
   const charlieTitleClicks = useRef<number>(0);
   const charlieTitleTimer = useRef<number | null>(null);
   const keyBuffer = useRef<string>('');
@@ -84,22 +82,16 @@ const App: React.FC = () => {
 
   const [customTrailColor, setCustomTrailColor] = useState('#ffffff');
 
-  // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
-
-  // Ref voor de gekozen basisinterval
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
   const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
 
-      // Helper functie om de beat kort te triggeren
   const handleBeat = () => {
-    console.log("2. App: Ik heb het signaal ontvangen!"); // <--- LOG
+    console.log("2. App: Ik heb het signaal ontvangen!");
     setBeatActive(true);
-    // Zet de glow na 100ms weer uit
     setTimeout(() => setBeatActive(false), 100);
   };
 
-  // Load leaderboard from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('vuurwerk-leaderboard');
     if (saved) {
@@ -121,17 +113,15 @@ const App: React.FC = () => {
   const showToast = (text: string, duration = 3500) => {
     setToast(text);
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    // @ts-ignore
     toastTimeoutRef.current = window.setTimeout(() => setToast(null), duration);
   };
 
-
   const startGame = async () => {
     const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
-    // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
+    
     const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
-    baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
-    setSpeedMultiplier(1.0); // Reset de dynamische versneller
+    baseGameIntervalRef.current = initialInterval;
+    setSpeedMultiplier(1.0);
 
     setStats({
       score: 0,
@@ -160,7 +150,6 @@ const App: React.FC = () => {
           setGameState(GameState.PLAYING);
         }, selectedSong.delay || 0);
       } else {
-        // Practice mode: geen muziek, geen timer
         setTimeLeft(0);
         setGameState(GameState.PLAYING);
       }
@@ -173,7 +162,6 @@ const App: React.FC = () => {
   };
 
   const endGame = () => {
-    // determine whether the player completed the full run
     const completedFullRun = timeLeft <= 0;
 
     if (!practiceMode && stats.score > bestScore) {
@@ -182,7 +170,6 @@ const App: React.FC = () => {
       localStorage.setItem('vuurwerk-best-score', newScore.toString());
     }
 
-    // evaluate and persist achievements based on stats
     const updated = evaluateEndOfGame(stats, completedFullRun);
     setAchievements(updated);
 
@@ -191,11 +178,9 @@ const App: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  // Title-click Charlie easter egg: 7 clicks within 3s
   const handleTitleClick = () => {
     charlieTitleClicks.current += 1;
     if (charlieTitleTimer.current) clearTimeout(charlieTitleTimer.current as number);
-    // @ts-ignore
     charlieTitleTimer.current = window.setTimeout(() => { charlieTitleClicks.current = 0; }, 3000);
 
     if (charlieTitleClicks.current >= 7 && Date.now() - (charlieCooldown.current || 0) > 8000) {
@@ -208,7 +193,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Global key-sequence listener for 'CHARLIE' easter egg
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toUpperCase();
@@ -216,7 +200,6 @@ const App: React.FC = () => {
         keyBuffer.current = (keyBuffer.current + k).slice(-12);
         if (keyBuffer.current.endsWith('CHARLIE') && Date.now() - (charlieCooldown.current || 0) > 8000) {
           charlieCooldown.current = Date.now();
-          // reward/feedback: bonus points + feedback
           setStats(prev => ({ ...prev, score: prev.score + 3000 }));
           setLastFeedback('CHARLIE BLAST!');
           showToast('Charlie Blast activated! +3000 score');
@@ -243,7 +226,6 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    // Easter egg: if playerName contains 'charlie' or 'kirk', special behaviour
     try {
       const lower = playerName.toLowerCase();
       if (lower.includes('charlie') || lower.includes('kirk')) {
@@ -254,17 +236,12 @@ const App: React.FC = () => {
 
     const updatedLeaderboard = [...leaderboard, newEntry];
     setLeaderboard(updatedLeaderboard);
-
-    // Save to localStorage
     localStorage.setItem('vuurwerk-leaderboard', JSON.stringify(updatedLeaderboard));
 
-    // Find and set player rank (0-indexed)
-    const sortedByScore = updatedLeaderboard
-      .sort((a, b) => b.score - a.score);
+    const sortedByScore = updatedLeaderboard.sort((a, b) => b.score - a.score);
     const rank = sortedByScore.findIndex(e => e.id === newEntry.id);
     setPlayerRank(rank);
 
-    // Show leaderboard
     setGameState(GameState.LEADERBOARD);
   };
 
@@ -286,30 +263,26 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // FUNCTIE: Berekent de dynamische versneller (agressiever in de laatste 15s)
     const calculateSpeedMultiplier = (remainingTimeSeconds: number): number => {
       if (remainingTimeSeconds > 15) {
-        return 1.0;  // Normale snelheid
+        return 1.0;
       } else if (remainingTimeSeconds > 10) {
-        return 1; // Versnelling 1 (35% sneller)
+        return 1;
       } else if (remainingTimeSeconds > 5) {
-        return 1;  // Versnelling 2 (80% sneller)
+        return 1;
       } else if (remainingTimeSeconds > 0) {
-        return 1;  // Versnelling 3 (150% sneller - CHAOS!)
+        return 1;
       }
       return 1.0;
     };
 
-    // Start or stop the timer depending on gameState, paused and practiceMode
     if (gameState === GameState.PLAYING && !paused && !practiceMode) {
-      // calculate startTime so remaining continues from current `timeLeft`
       startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
       timerRef.current = window.setInterval(() => {
         const elapsed = Date.now() - startTimeRef.current;
         const remaining = Math.max(0, (GAME_DURATION_MS - elapsed) / 1000);
         setTimeLeft(remaining);
 
-        // Pas dynamische snelheidsaanpassing toe
         const newMultiplier = calculateSpeedMultiplier(remaining);
         if (newMultiplier !== speedMultiplier) {
           setSpeedMultiplier(newMultiplier);
@@ -322,7 +295,7 @@ const App: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState, paused, timeLeft, endGame, speedMultiplier, practiceMode]); // speedMultiplier is toegevoegd als dependency
+  }, [gameState, paused, timeLeft, speedMultiplier, practiceMode]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -386,7 +359,6 @@ const App: React.FC = () => {
     });
   };
 
-
   const showFeedback = (text: string) => {
     setLastFeedback(text);
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
@@ -396,14 +368,7 @@ const App: React.FC = () => {
   };
 
   return (
-
-    
-    
     <div className="relative w-screen h-screen overflow-hidden bg-slate-900 select-none">
-
-
-
-
       <GameCanvas
         gameState={gameState}
         onScoreUpdate={handleScoreUpdate}
@@ -415,7 +380,7 @@ const App: React.FC = () => {
         baseLaunchInterval={baseGameIntervalRef.current}
         speedMultiplier={speedMultiplier}
         selectedDifficulty={selectedDifficulty}
-         onBeat={handleBeat} 
+        onBeat={handleBeat}
       />
 
       {toast && (
@@ -425,28 +390,67 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.MENU && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm">
-
-          <h1 onClick={handleTitleClick} className="cursor-pointer text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm overflow-y-auto py-8">
+          <h1 onClick={handleTitleClick} className="cursor-pointer text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-6 drop-shadow-2xl">
             Scalda Spark
           </h1>
           
-          <div className="mb-8 px-6 py-2 bg-slate-800/80 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+          <div className="mb-6 px-6 py-2 bg-slate-800/80 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
             <p className="text-yellow-400 font-bold text-xl tracking-wider">
               🏆 BESTE SCORE: {bestScore}
             </p>
           </div>
           
-          <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
+          <p className="text-slate-300 mb-4 text-center max-w-md leading-relaxed text-lg px-4">
             Luister naar de beat! 🎵
             <br />
             Wacht tot de vuurpijl op de maat zijn hoogste punt bereikt en druk op{' '}
             <strong>SPATIE</strong>.
           </p>
 
-          <div className="flex flex-col items-center gap-2 mb-8 w-full max-w-xs">
-            <label className="text-slate-300 font-semibold">Kies een track</label>
+          <div className="flex flex-col items-center gap-3 mb-6 w-full max-w-md px-4">
+            <label className="text-slate-300 font-semibold text-lg">Moeilijkheidsgraad</label>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setSelectedDifficulty(Difficulty.EASY)}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                  selectedDifficulty === Difficulty.EASY
+                    ? 'bg-green-600 text-white scale-105 shadow-lg'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                Makkelijk
+              </button>
+              <button
+                onClick={() => setSelectedDifficulty(Difficulty.NORMAL)}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                  selectedDifficulty === Difficulty.NORMAL
+                    ? 'bg-blue-600 text-white scale-105 shadow-lg'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                Normaal
+              </button>
+              <button
+                onClick={() => setSelectedDifficulty(Difficulty.HARD)}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                  selectedDifficulty === Difficulty.HARD
+                    ? 'bg-red-600 text-white scale-105 shadow-lg'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                Moeilijk
+              </button>
+            </div>
+            <p className="text-slate-400 text-sm text-center mt-1">
+              {selectedDifficulty === Difficulty.EASY && 'Langzamer tempo, meer tijd om te reageren'}
+              {selectedDifficulty === Difficulty.NORMAL && 'Standaard tempo, uitdagend maar eerlijk'}
+              {selectedDifficulty === Difficulty.HARD && 'Razendsnel, alleen voor experts!'}
+            </p>
+          </div>
 
+          <div className="flex flex-col items-center gap-2 mb-6 w-full max-w-xs px-4">
+            <label className="text-slate-300 font-semibold">Kies een track</label>
             <select
               value={selectedSongUrl}
               onChange={(e) => setSelectedSongUrl(e.target.value)}
@@ -460,28 +464,22 @@ const App: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex flex-row gap-8 mb-8 justify-center">
-
-            {/* 🎨 KLEURKEUZE - VUURWERK */}
-            <div className="flex flex-col items-center gap-3 mb-8">
+          <div className="flex flex-row gap-8 mb-6 justify-center flex-wrap px-4">
+            <div className="flex flex-col items-center gap-3">
               <p className="text-slate-300 font-semibold">
                 Kies je vuurwerkkleuren
               </p>
-
               <div className="flex gap-2 flex-wrap justify-center mt-3">
                 {selectedColors.map(color => (
                   <button
                     key={color}
-                    onClick={() =>
-                      setSelectedColors(prev => prev.filter(c => c !== color))
-                    }
+                    onClick={() => setSelectedColors(prev => prev.filter(c => c !== color))}
                     className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
                     style={{ backgroundColor: color }}
                     title="Klik om te verwijderen"
                   />
                 ))}
               </div>
-
               {selectedColors.length === 0 && (
                 <p className="text-red-400 text-sm">
                   Kies minimaal één kleur
@@ -494,7 +492,6 @@ const App: React.FC = () => {
                   onChange={e => setCustomColor(e.target.value)}
                   className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
                 />
-
                 <button
                   onClick={() => {
                     if (!selectedColors.includes(customColor)) {
@@ -505,32 +502,24 @@ const App: React.FC = () => {
                 >
                   Voeg kleur toe
                 </button>
-
               </div>
             </div>
 
-
-            {/* 🎨 KLEURKEUZE - TRAAL */}
-
-            <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="flex flex-col items-center gap-3">
               <p className="text-slate-300 font-semibold">
-                Kies je traalleuren
+                Kies je traalkleuren
               </p>
-
               <div className="flex gap-2 flex-wrap justify-center mt-3">
                 {selectedTrailColors.map(color => (
                   <button
                     key={color}
-                    onClick={() =>
-                      setSelectedTrailColors(prev => prev.filter(c => c !== color))
-                    }
+                    onClick={() => setSelectedTrailColors(prev => prev.filter(c => c !== color))}
                     className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
                     style={{ backgroundColor: color }}
                     title="Klik om te verwijderen"
                   />
                 ))}
               </div>
-
               {selectedTrailColors.length === 0 && (
                 <p className="text-red-400 text-sm">
                   Kies minimaal één kleur
@@ -543,7 +532,6 @@ const App: React.FC = () => {
                   onChange={e => setCustomTrailColor(e.target.value)}
                   className="w-12 h-12 rounded-lg border border-slate-600 cursor-pointer bg-transparent"
                 />
-
                 <button
                   onClick={() => {
                     if (!selectedTrailColors.includes(customTrailColor)) {
@@ -556,24 +544,21 @@ const App: React.FC = () => {
                 </button>
               </div>
             </div>
-          </div> 
-          {/* CORRECTIE: Deze div sluit de flex-row container van de kleurensectie */}
+          </div>
 
-          <br></br>
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          <div className="flex flex-col gap-3 w-full max-w-xs px-4">
             <button
               onClick={startGame}
               disabled={selectedColors.length === 0}
-              className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
-                ${selectedColors.length === 0
+              className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition ${
+                selectedColors.length === 0
                   ? 'bg-slate-600 cursor-not-allowed'
                   : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
-                }`}
+              }`}
             >
               START SHOW 🔊
-            </button>            
+            </button>
           </div>
-
         </div>
       )}
 
@@ -586,17 +571,13 @@ const App: React.FC = () => {
           >
             ❓
           </button>
-
           <button
-            onClick={() => {
-              setPracticeMode(p => !p);
-            }}
+            onClick={() => setPracticeMode(p => !p)}
             aria-label="Practice"
             className={`w-12 h-12 rounded-full text-white flex items-center justify-center text-xl shadow-lg hover:scale-105 transition ${practiceMode ? 'bg-emerald-600' : 'bg-slate-700'}`}
           >
             🧪
           </button>
-
           <button
             onClick={() => setShowAdvanced(true)}
             aria-label="Advanced"
@@ -616,7 +597,6 @@ const App: React.FC = () => {
           >
             🏆
           </button>
-
           <button
             onClick={() => setShowCredits(true)}
             aria-label="Credits"
@@ -624,7 +604,6 @@ const App: React.FC = () => {
           >
             🧾
           </button>
-
           <button
             onClick={() => setShowAchievements(true)}
             aria-label="Achievements"
@@ -642,7 +621,6 @@ const App: React.FC = () => {
               <h2 className="text-2xl font-bold text-white">Credits</h2>
               <button onClick={() => setShowCredits(false)} className="text-slate-300 hover:text-white">Sluiten</button>
             </div>
-
             <style>{`
               .credits-viewport { height: 260px; overflow: hidden; position: relative; }
               .credits-scroller { display: block; width: 100%; }
@@ -651,7 +629,6 @@ const App: React.FC = () => {
               @keyframes credits-scroll { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
               .credits-animate { animation: credits-scroll 18s linear infinite; }
             `}</style>
-
             <div className="credits-viewport mt-2">
               <div className="credits-scroller credits-animate">
                 <div className="credits-list">
@@ -659,79 +636,65 @@ const App: React.FC = () => {
                     <div className="text-white font-semibold">Lead Design</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Gameplay & Mechanics</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Audio & Sound Design</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">UI / UX & Accessibility</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Visual Effects & Particles</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Achievements & Progression</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">QA, Balancing & Playtesting</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Build, DevOps & Packaging</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
-                  </div><br></br>
+                  </div>
+                  <br />
                 </div>
-
                 <div className="credits-list" aria-hidden="true">
                   <div className="credits-item">
                     <div className="text-white font-semibold">Lead Design</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Gameplay & Mechanics</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Audio & Sound Design</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">UI / UX & Accessibility</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Visual Effects & Particles</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Achievements & Progression</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">QA, Balancing & Playtesting</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
                   </div>
-
                   <div className="credits-item">
                     <div className="text-white font-semibold">Build, DevOps & Packaging</div>
                     <div className="text-slate-300 text-sm">Vlad, Yana, Abdulkarim, Ruben, Gijs</div>
@@ -739,14 +702,12 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <div className="mt-4 text-right">
               <button onClick={() => setShowCredits(false)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white">Sluiten</button>
             </div>
           </div>
         </div>
       )}
-
 
       {gameState === GameState.PLAYING && (
         <>
@@ -760,7 +721,6 @@ const App: React.FC = () => {
             practiceMode={practiceMode}
             beatActive={beatActive}
           />
-
           {practiceMode && (
             <div className="absolute top-6 right-6 z-50 pointer-events-auto">
               <button
@@ -850,20 +810,8 @@ const App: React.FC = () => {
           achievements={achievements}
         />
       )}
-
-      
-
     </div>
-
-    
-    
   );
-  
-  
 };
-
-
-
-
 
 export default App;
