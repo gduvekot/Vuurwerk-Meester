@@ -11,12 +11,13 @@ interface UIOverlayProps {
   practiceMode?: boolean;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, paused = false, onTogglePause, onStop, practiceMode = false }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, paused = false, onTogglePause, onStop, beatActive, practiceMode = false }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-6 flex flex-col justify-between">
       <div className="flex justify-between items-start">
         <div className="flex flex-col gap-1">
           <div className="text-white text-4xl font-bold drop-shadow-lg font-mono">
+            <h3>Best score: {stats.bestScore}</h3>
             {stats.score.toLocaleString()}
           </div>
           <div className="text-pink-400 text-xl font-bold drop-shadow-md">
@@ -74,9 +75,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, pa
           </div>
         </div>
       )}
+{/* De Beat Lijn */}
+<div
+    className={`absolute left-0 w-full border-t-4 transition-all duration-100 ease-out z-10
+        ${beatActive 
+        ? 'border-white shadow-[0_0_30px_#fff] scale-y-150 opacity-100' // GLOW AAN
+        : 'border-white/30 border-dashed scale-y-100 opacity-70'       // NORMAAL
+        }`}
+    style={{ bottom: '400px' }} // Zorg dat dit overeenkomt met je TARGET_Y
+/>
       <div className="text-center text-white/50 text-sm mb-4">
         Tik of druk op SPATIE op het hoogste punt!
-      </div>
+        </div>
     </div>
   );
 };

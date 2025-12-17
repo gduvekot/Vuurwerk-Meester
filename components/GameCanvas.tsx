@@ -28,6 +28,8 @@ interface GameCanvasProps {
   speedMultiplier: number;
   selectedDifficulty: Difficulty;
   timeLeft?: number;
+  onBeat?: () => void;
+  
 }
 
 const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -39,6 +41,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   baseLaunchInterval,
   speedMultiplier,
   selectedDifficulty,
+  onBeat,
   timeLeft = 60
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -197,9 +200,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
     const estimatedFrames = durationMs / 11.666;
-    const vy = -(GRAVITY * estimatedFrames);
 
-    const distance = (vy * estimatedFrames) + (0.5 * GRAVITY * (estimatedFrames * estimatedFrames));
+    const vy = -11;
+
+    const distance = 10;
+
     const targetHeight = startY + distance;
 
     // 🔄 Zijwaartse drift op basis van difficulty
@@ -217,7 +222,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       color: colors[Math.floor(Math.random() * colors.length)],
       status: FireworkStatus.RISING,
       apexY: targetHeight,
-      trail: []
+      trail: [],
+      
     };
     fireworksRef.current.push(fw);
   };
@@ -248,26 +254,36 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const update = (time: number) => {
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // 🚀 Dynamische lanceerinterval met speed multiplier
-    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
+    const currentTime = timeLeftRef.current;
+    const dynamicSpeedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
+
+    // Bepaal de actuele lanceerinterval met dynamische versnelling
+    // Lager interval = snellere lancering
+    const currentLaunchInterval = BEAT_MS / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
+
+      // Gebruik de dynamische interval
       if (time - lastLaunchRef.current > currentLaunchInterval) {
         const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
         lastLaunchRef.current = time - drift;
+
         spawnFirework(canvas.width, canvas.height);
+
       }
     }
 
     // Update fireworks met speed multiplier
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING || fw.status === FireworkStatus.WET || fw.status === FireworkStatus.DUD) {
-        fw.pos.x += fw.vel.x * speedMultiplier;
-        fw.pos.y += fw.vel.y * speedMultiplier;
-        fw.vel.y += GRAVITY * speedMultiplier;
+
+        fw.pos.x += fw.vel.x * dynamicSpeedMultiplier;
+        fw.pos.y += fw.vel.y * dynamicSpeedMultiplier;
+        fw.vel.y += GRAVITY * dynamicSpeedMultiplier;
 
         if (frameCountRef.current % 3 === 0 && fw.status === FireworkStatus.RISING) {
           fw.trail.push({ ...fw.pos });
@@ -276,9 +292,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
         if (fw.pos.y > canvas.height + 50) {
           fw.status = FireworkStatus.DEAD;
+          if (fw.status === FireworkStatus.RISING) {
+            // Wordt 'wet' als hij de bodem bereikt zonder ontploffing
+            onScoreUpdate(0, 'wet');
+          }
         }
 
         if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) {
+          // Hier wordt hij 'wet' als hij te ver valt zonder geklikt te worden.
           fw.status = FireworkStatus.WET;
           fw.color = '#555';
         }
@@ -319,21 +340,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.globalAlpha = 1;
 
     fireworksRef.current.forEach(fw => {
-      if (fw.status === FireworkStatus.RISING && fw.trail.length > 0) {
+      if (fw.status === FireworkStatus.RISING) {
         ctx.beginPath();
         ctx.strokeStyle = fw.trailColor ? fw.trailColor : 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
-        ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
-        for (let i = 1; i < fw.trail.length; i++) {
-          ctx.lineTo(fw.trail[i].x, fw.trail[i].y);
+        if (fw.trail.length > 0) {
+          ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
+          for (let i = 1; i < fw.trail.length; i++) ctx.lineTo(fw.trail[i].x, fw.trail[i].y);
+          ctx.stroke();
         }
-        ctx.stroke();
       }
 
       if (fw.status !== FireworkStatus.EXPLODING && fw.status !== FireworkStatus.DEAD) {
         ctx.beginPath();
         ctx.arc(fw.pos.x, fw.pos.y, 4, 0, Math.PI * 2);
         ctx.fillStyle = fw.color;
+        ctx.fill();
+
         ctx.shadowBlur = 10;
         ctx.shadowColor = fw.color;
         ctx.fill();
@@ -365,6 +388,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const loop = (time: number) => {
     if (gameState === GameState.PLAYING) {
       if (!pausedRef.current) update(time);
+
       draw();
     } else if (gameState === GameState.GAME_OVER) {
       update(time);
@@ -434,7 +458,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     if (vy < -APEX_THRESHOLD) {
-      if (vy < -6) {
+      if (vy < -3) {
         target.status = FireworkStatus.DUD;
         target.color = '#555';
         target.vel.y *= 0.5;
@@ -457,6 +481,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        if (onBeat) onBeat();
       if (e.code === 'Space') handleTrigger();
     };
 
