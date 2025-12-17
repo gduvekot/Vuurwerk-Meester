@@ -79,10 +79,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, pa
 <div
     className={`absolute left-0 w-full border-t-4 transition-all duration-100 ease-out z-10
         ${beatActive 
-        ? 'border-white shadow-[0_0_30px_#fff] scale-y-150 opacity-100' // GLOW AAN
+        ? 'border-white shadow-[0_0_10px_#fff] scale-y-150 opacity-70' // GLOW AAN
         : 'border-white/30 border-dashed scale-y-100 opacity-70'       // NORMAAL
         }`}
-    style={{ bottom: '400px' }} // Zorg dat dit overeenkomt met je TARGET_Y
+    style={{ bottom: '403px' }}
 />
       <div className="text-center text-white/50 text-sm mb-4">
         Tik of druk op SPATIE op het hoogste punt!
