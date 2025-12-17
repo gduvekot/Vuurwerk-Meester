@@ -415,21 +415,35 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.MENU && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 backdrop-blur-sm">
+      <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm">
+        <div className="h-full flex flex-col items-center px-4 pt-8 pb-6">
 
-          <h1 onClick={handleTitleClick} className="cursor-pointer text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
+          {/* LOGO */}
+          <img
+            src="/img/logo.png"
+            alt="Scalda Spark logo"
+            className="w-24 md:w-32 mb-4 drop-shadow-xl select-none pointer-events-none"
+          />
+
+          {/* TITEL */}
+          <h1
+            onClick={handleTitleClick}
+            className="cursor-pointer text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-4 text-center"
+          >
             Scalda Spark
           </h1>
 
-          <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
-            Luister naar de beat! 🎵
-            <br />
-            Wacht tot de vuurpijl op de maat zijn hoogste punt bereikt en druk op{' '}
-            <strong>SPATIE</strong>.
+          {/* INSTRUCTIE */}
+          <p className="text-slate-300 mb-6 text-center max-w-md text-base leading-relaxed">
+            Luister naar de beat 🎵  
+            Druk op <strong>SPATIE</strong> op het hoogste punt.
           </p>
 
-          <div className="flex flex-col items-center gap-2 mb-8 w-full max-w-xs">
-            <label className="text-slate-300 font-semibold">Kies een track</label>
+          {/* TRACK SELECT */}
+          <div className="flex flex-col items-center gap-2 mb-6 w-full max-w-xs">
+            <label className="text-slate-300 font-semibold">
+              Kies een track
+            </label>
 
             <select
               value={selectedSongUrl}
@@ -444,15 +458,16 @@ const App: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex flex-row gap-8 mb-8 justify-center">
+          {/* KLEUREN */}
+          <div className="flex flex-row gap-8 mb-8 justify-center w-full max-w-3xl">
 
-            {/* 🎨 KLEURKEUZE - VUURWERK */}
-            <div className="flex flex-col items-center gap-3 mb-8">
+            {/* VUURWERK */}
+            <div className="flex flex-col items-center gap-3">
               <p className="text-slate-300 font-semibold">
-                Kies je vuurwerkkleuren
+                Vuurwerkkleuren
               </p>
 
-              <div className="flex gap-2 flex-wrap justify-center mt-3">
+              <div className="flex gap-2 flex-wrap justify-center">
                 {selectedColors.map(color => (
                   <button
                     key={color}
@@ -461,7 +476,6 @@ const App: React.FC = () => {
                     }
                     className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
                     style={{ backgroundColor: color }}
-                    title="Klik om te verwijderen"
                   />
                 ))}
               </div>
@@ -471,7 +485,8 @@ const App: React.FC = () => {
                   Kies minimaal één kleur
                 </p>
               )}
-              <div className="flex items-center gap-3 mt-4">
+
+              <div className="flex items-center gap-3">
                 <input
                   type="color"
                   value={customColor}
@@ -487,21 +502,18 @@ const App: React.FC = () => {
                   }}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
                 >
-                  Voeg kleur toe
+                  Voeg toe
                 </button>
-
               </div>
             </div>
 
-
-            {/* 🎨 KLEURKEUZE - TRAAL */}
-
-            <div className="flex flex-col items-center gap-3 mb-8">
+            {/* TRAIL */}
+            <div className="flex flex-col items-center gap-3">
               <p className="text-slate-300 font-semibold">
-                Kies je traalleuren
+                Traalkleuren
               </p>
 
-              <div className="flex gap-2 flex-wrap justify-center mt-3">
+              <div className="flex gap-2 flex-wrap justify-center">
                 {selectedTrailColors.map(color => (
                   <button
                     key={color}
@@ -510,7 +522,6 @@ const App: React.FC = () => {
                     }
                     className="w-8 h-8 rounded-full border-2 border-white opacity-80 hover:scale-110 transition"
                     style={{ backgroundColor: color }}
-                    title="Klik om te verwijderen"
                   />
                 ))}
               </div>
@@ -520,7 +531,8 @@ const App: React.FC = () => {
                   Kies minimaal één kleur
                 </p>
               )}
-              <div className="flex items-center gap-3 mt-4">
+
+              <div className="flex items-center gap-3">
                 <input
                   type="color"
                   value={customTrailColor}
@@ -536,29 +548,29 @@ const App: React.FC = () => {
                   }}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition"
                 >
-                  Voeg kleur toe
+                  Voeg toe
                 </button>
               </div>
             </div>
-          </div> 
-          {/* CORRECTIE: Deze div sluit de flex-row container van de kleurensectie */}
+          </div>
 
-          <br></br>
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          {/* START BUTTON */}
+          <div className="mt-4">
             <button
               onClick={startGame}
               disabled={selectedColors.length === 0}
               className={`px-12 py-4 rounded-full text-white font-bold text-2xl transition
                 ${selectedColors.length === 0
                   ? 'bg-slate-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.5)]'
+                  : 'bg-gradient-to-r from-pink-500 to-violet-600 hover:scale-105 shadow-[0_0_30px_rgba(168,85,247,0.5)]'
                 }`}
             >
               START SHOW 🔊
-            </button>            
+            </button>
           </div>
 
         </div>
+      </div>
       )}
 
       {gameState === GameState.MENU && (
