@@ -18,7 +18,9 @@ export const LAUNCH_MODIFIERS = {
   [Difficulty.HARD]: 0.5,    
 };
 
+
 export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2;
+
 export const FLIGHT_DURATION_BEATS = 2; 
 
 export const GAME_DURATION_MS = 60000; 
@@ -33,7 +35,6 @@ export const FIREWORK_COLORS = [
   { value: '#ec4899', class: 'bg-pink-500' },
   { value: '#ffffff', class: 'bg-white' }
 ];
-
 
 export const APEX_THRESHOLD = 0.45; 
 export const LATE_THRESHOLD = 2.0; 
