@@ -6,19 +6,25 @@ export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 
-// 🎯 MOEILIJKHEIDSGRADEN
+// NIEUW: Difficulty settings
 export enum Difficulty {
   EASY = 'Makkelijk', 
   NORMAL = 'Normaal', 
   HARD = 'Moeilijk', 
+  EXTREME = 'CHAOS'
 }
 
-// 🚀 LANCEERSNELHEID MODIFICATOREN
+// Hoeveel sneller of trager het spel begint
 export const LAUNCH_MODIFIERS = {
-  [Difficulty.EASY]: 1.8,    // 80% langzamer (makkelijker)
-  [Difficulty.NORMAL]: 1.0,  // Normaal (basis)
-  [Difficulty.HARD]: 0.5,    // 50% sneller (zeer moeilijk)
+  [Difficulty.EASY]: 1.5,   
+  [Difficulty.NORMAL]: 1.0,  
+  [Difficulty.HARD]: 0.7,
+  [Difficulty.EXTREME]: 0.4    
 };
+
+// NIEUW: Adaptieve constanten (combo maakt het sneller)
+export const COMBO_SPEED_DECREMENT_MS = 30; // 30ms sneller per combo punt
+export const MIN_LAUNCH_INTERVAL_MS = 250; // Maximale snelheid
 
 export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2;
 export const FLIGHT_DURATION_BEATS = 2; 
@@ -37,7 +43,8 @@ export const FIREWORK_COLORS = [
 ];
 
 
-export const APEX_THRESHOLD = 0.65; 
+export const APEX_THRESHOLD = 0.45; 
+
 export const LATE_THRESHOLD = 2.0; 
 export const EARLY_THRESHOLD = -2.0; 
 export const SCORE_PERFECT = 100;
