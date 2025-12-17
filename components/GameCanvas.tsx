@@ -526,7 +526,7 @@ const handleTrigger = useCallback(() => {
     }
 
     if (vy < -APEX_THRESHOLD) {
-      if (vy < -3) {
+      if (vy < 3) {
         target.status = FireworkStatus.DUD;
         target.color = '#555';
         target.vel.y *= 0.5;
@@ -547,7 +547,7 @@ const handleTrigger = useCallback(() => {
 
   // ⏫ TE VROEG
   if (vy < -APEX_THRESHOLD) {
-    if (vy < -6) {
+    if (vy < -2.5) {
       // ❌ MIS
       target.status = FireworkStatus.DUD;
       target.color = '#555';
