@@ -1,17 +1,17 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { 
-  GameState, 
-  Firework, 
-  Particle, 
-  FireworkStatus 
+import {
+  GameState,
+  Firework,
+  Particle,
+  FireworkStatus
 } from '../types';
-import { 
-  GRAVITY, 
-  APEX_THRESHOLD, 
-  SCORE_PERFECT, 
-  SCORE_GOOD, 
-  EXPLOSION_PARTICLES, 
-  EXPLOSION_SPEED, 
+import {
+  GRAVITY,
+  APEX_THRESHOLD,
+  SCORE_PERFECT,
+  SCORE_GOOD,
+  EXPLOSION_PARTICLES,
+  EXPLOSION_SPEED,
   PARTICLE_DECAY,
   BEAT_MS,
   FLIGHT_DURATION_BEATS,
@@ -30,32 +30,41 @@ interface GameCanvasProps {
   timeLeft?: number;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ 
-  gameState, 
-  onScoreUpdate, 
-  onGameOver, 
-  colors, 
+const GameCanvas: React.FC<GameCanvasProps> = ({
+  gameState,
+  onScoreUpdate,
+  onGameOver,
+  colors,
   paused = false,
-  baseLaunchInterval, 
-  speedMultiplier,    
+  baseLaunchInterval,
+  speedMultiplier,
   selectedDifficulty,
   timeLeft = 60
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
   const pausedRef = useRef<boolean>(false);
-  
+
   const fireworksRef = useRef<Firework[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const lastLaunchRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
   const timeLeftRef = useRef(timeLeft);
+  const starsRef = useRef<{ x: number; y: number; r: number }[]>([]);
+
+  useEffect(() => {
+    starsRef.current = Array.from({ length: 200 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.5 + 0.5
+    }));
+  }, []);
 
   useEffect(() => {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
 
-  const TEXT_WORDS = ['CHARLIE KIRK']; 
+  const TEXT_WORDS = ['CHARLIE KIRK'];
 
   const getTextPoints = (
     text: string,
@@ -185,11 +194,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     const x = width * ((1 - horizontalSpread) / 2) + Math.random() * (width * horizontalSpread);
     const startY = height;
-    
+
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
-    const estimatedFrames = durationMs / 11.666; 
+    const estimatedFrames = durationMs / 11.666;
     const vy = -(GRAVITY * estimatedFrames);
-    
+
     const distance = (vy * estimatedFrames) + (0.5 * GRAVITY * (estimatedFrames * estimatedFrames));
     const targetHeight = startY + distance;
 
@@ -246,9 +255,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
-      if (time - lastLaunchRef.current > currentLaunchInterval) { 
+      if (time - lastLaunchRef.current > currentLaunchInterval) {
         const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
-        lastLaunchRef.current = time - drift; 
+        lastLaunchRef.current = time - drift;
         spawnFirework(canvas.width, canvas.height);
       }
     }
@@ -264,25 +273,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           fw.trail.push({ ...fw.pos });
           if (fw.trail.length > 10) fw.trail.shift();
         }
-        
+
         if (fw.pos.y > canvas.height + 50) {
           fw.status = FireworkStatus.DEAD;
         }
-        
-        if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) { 
+
+        if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) {
           fw.status = FireworkStatus.WET;
-          fw.color = '#555'; 
+          fw.color = '#555';
         }
       }
     });
-    
+
     fireworksRef.current = fireworksRef.current.filter(fw => fw.status !== FireworkStatus.DEAD);
 
     particlesRef.current.forEach(p => {
       p.pos.x += p.vel.x;
       p.pos.y += p.vel.y;
-      p.vel.y += GRAVITY * 0.5; 
-      p.vel.x *= 0.96; 
+      p.vel.y += GRAVITY * 0.5;
+      p.vel.x *= 0.96;
       p.vel.y *= 0.96;
       p.life -= p.decay;
     });
@@ -297,13 +306,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.2)'; 
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#ffffff';
+    starsRef.current.forEach(star => {
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
 
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING && fw.trail.length > 0) {
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+        ctx.strokeStyle = fw.trailColor ? fw.trailColor : 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
         for (let i = 1; i < fw.trail.length; i++) {
@@ -314,7 +332,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       if (fw.status !== FireworkStatus.EXPLODING && fw.status !== FireworkStatus.DEAD) {
         ctx.beginPath();
-        ctx.arc(fw.pos.x, fw.pos.y, 4, 0, Math.PI * 2); 
+        ctx.arc(fw.pos.x, fw.pos.y, 4, 0, Math.PI * 2);
         ctx.fillStyle = fw.color;
         ctx.shadowBlur = 10;
         ctx.shadowColor = fw.color;
@@ -352,7 +370,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       update(time);
       draw();
     }
-    
+
     requestRef.current = requestAnimationFrame(loop);
   };
 
@@ -362,11 +380,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
-    
+
     if (gameState === GameState.PLAYING) {
       fireworksRef.current = [];
       particlesRef.current = [];
-      lastLaunchRef.current = performance.now(); 
+      lastLaunchRef.current = performance.now();
     }
 
     requestRef.current = requestAnimationFrame(loop);
@@ -414,7 +432,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       target.status = FireworkStatus.DEAD;
       return;
     }
-    
+
     if (vy < -APEX_THRESHOLD) {
       if (vy < -6) {
         target.status = FireworkStatus.DUD;
@@ -441,7 +459,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') handleTrigger();
     };
-    
+
     const handleResize = () => {
       if (canvasRef.current) {
         canvasRef.current.width = window.innerWidth;
@@ -458,8 +476,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   }, [handleTrigger]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
+    <canvas
+      ref={canvasRef}
       onClick={handleTrigger}
       className="absolute top-0 left-0 w-full h-full cursor-pointer touch-none"
     />
