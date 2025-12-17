@@ -21,12 +21,12 @@ import AdvancedModal from './components/AdvancedModal';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 const SONGS = [
-  { id: '1', title: 'DJ Ruben - ID', url: './audio/djruben.mp3', bpm: 132, delay: 650 },
-  { id: '2', title: 'DJ Ruben - Burn', url: './audio/djrubenburn.mp3', bpm: 138, delay: 2000 },
-  { id: '3', title: 'DJ Ruben - Nostalgia', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 },
-  { id: '4', title: 'Martin Garrix - Peace of Mind', url: './audio/MartinGarrix1.mp3', bpm: 126, delay: 1500 },
-  { id: '5', title: 'Oliver Heldens - Disco Voyager', url: './audio/HiLo.mp3', bpm: 125, delay: 1250 },
-    { id: '6', title: 'Charlie Kirk song remix', url: './audio/charliekirkremix.mp3', bpm: 133, delay: 0 }
+  { id: '1', title: 'NORMAL: DJ Ruben - ID', url: './audio/djruben.mp3', bpm: 132, delay: 250 },
+  { id: '2', title: 'FAST: DJ Ruben - Burn', url: './audio/djrubenburn.mp3', bpm: 138, delay: 1500 },
+  { id: '3', title: 'NORMAL: DJ Ruben - Nostalgia', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 700 },
+  { id: '4', title: 'SLOW: Martin Garrix - Peace of Mind', url: './audio/MartinGarrix1.mp3', bpm: 126, delay: 1500 },
+  { id: '5', title: 'SLOW: Oliver Heldens - Disco Voyager', url: './audio/HiLo.mp3', bpm: 125, delay: 1250 },
+    { id: '6', title: 'NORMAL: Charlie Kirk song remix', url: './audio/charliekirkremix.mp3', bpm: 133, delay: 0 }
 
 ];
 
@@ -148,10 +148,9 @@ const App: React.FC = () => {
         await audioManager.loadTrack(selectedSong.url);
         setTimeLeft(GAME_DURATION_MS / 1000);
         audioManager.resume();
-
+  setGameState(GameState.PLAYING);
         setTimeout(() => {
           audioManager.start();
-          setGameState(GameState.PLAYING);
         }, selectedSong.delay || 0);
       } else {
         setTimeLeft(0);
