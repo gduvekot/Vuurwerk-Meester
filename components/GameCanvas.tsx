@@ -3,21 +3,19 @@ import {
   GameState, 
   Firework, 
   Particle, 
-  FireworkStatus, 
-  ScoreStats 
+  FireworkStatus 
 } from '../types';
 import { 
   GRAVITY, 
-  COLORS, 
   APEX_THRESHOLD, 
   SCORE_PERFECT, 
   SCORE_GOOD, 
   EXPLOSION_PARTICLES, 
   EXPLOSION_SPEED, 
   PARTICLE_DECAY,
-  LAUNCH_INTERVAL_MS,
   BEAT_MS,
-  FLIGHT_DURATION_BEATS
+  FLIGHT_DURATION_BEATS,
+  Difficulty
 } from '../constants';
 
 interface GameCanvasProps {
@@ -26,21 +24,166 @@ interface GameCanvasProps {
   onGameOver: () => void;
   colors: string[];
   paused?: boolean;
+  baseLaunchInterval: number;
+  speedMultiplier: number;
+  selectedDifficulty: Difficulty;
+  timeLeft?: number;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGameOver, colors, paused = false }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ 
+  gameState, 
+  onScoreUpdate, 
+  onGameOver, 
+  colors, 
+  paused = false,
+  baseLaunchInterval, 
+  speedMultiplier,    
+  selectedDifficulty,
+  timeLeft = 60
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
   const pausedRef = useRef<boolean>(false);
   
   const fireworksRef = useRef<Firework[]>([]);
   const particlesRef = useRef<Particle[]>([]);
-  const lastTimeRef = useRef<number>(0);
   const lastLaunchRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
+  const timeLeftRef = useRef(timeLeft);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  const TEXT_WORDS = ['CHARLIE KIRK']; 
+
+  const getTextPoints = (
+    text: string,
+    cx: number,
+    cy: number
+  ) => {
+    const points: { x: number; y: number }[] = [];
+    const w = 420;
+    const h = 140;
+
+    const off = document.createElement('canvas');
+    off.width = w;
+    off.height = h;
+    const offCtx = off.getContext('2d');
+    if (!offCtx) return points;
+
+    offCtx.clearRect(0, 0, w, h);
+    offCtx.font = 'bold 56px Arial';
+    offCtx.fillStyle = '#fff';
+    offCtx.textAlign = 'center';
+    offCtx.textBaseline = 'middle';
+    offCtx.fillText(text, w / 2, h / 2);
+
+    const img = offCtx.getImageData(0, 0, w, h).data;
+
+    for (let i = 0; i < img.length; i += 4) {
+      if (img[i] > 200) {
+        const px = (i / 4) % w;
+        const py = Math.floor(i / 4 / w);
+        if ((px + py) % 3 === 0) {
+          points.push({
+            x: cx - w / 2 + px,
+            y: cy - h / 2 + py
+          });
+        }
+      }
+    }
+    return points;
+  };
+
+  const createTextExplosion = (
+    text: string,
+    x: number,
+    y: number,
+    color: string
+  ) => {
+    const points = getTextPoints(text, x, y);
+    points.forEach(p => {
+      particlesRef.current.push({
+        id: Math.random(),
+        pos: { x, y },
+        vel: {
+          x: (p.x - x) * 0.06,
+          y: (p.y - y) * 0.06
+        },
+        life: 1,
+        maxLife: 1,
+        color: getParticleColor(color, true),
+        size: 2,
+        decay: PARTICLE_DECAY * 0.9
+      });
+    });
+  };
+
+  const createRingExplosion = (x: number, y: number, color: string) => {
+    const count = 60;
+    const speed = 3;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      particlesRef.current.push({
+        id: Math.random(),
+        pos: { x, y },
+        vel: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed
+        },
+        life: 1,
+        maxLife: 1,
+        color: getParticleColor(color, true),
+        size: 2,
+        decay: PARTICLE_DECAY
+      });
+    }
+  };
+
+  const createSpiralExplosion = (x: number, y: number, color: string) => {
+    const count = 80;
+    for (let i = 0; i < count; i++) {
+      const angle = i * 0.35;
+      const speed = i * 0.04;
+      particlesRef.current.push({
+        id: Math.random(),
+        pos: { x, y },
+        vel: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed
+        },
+        life: 1,
+        maxLife: 1,
+        color: getParticleColor(color, true),
+        size: 2,
+        decay: PARTICLE_DECAY * 0.8
+      });
+    }
+  };
+
+  const createDoubleExplosion = (x: number, y: number, color: string) => {
+    createExplosion(x, y, color, 'perfect');
+    setTimeout(() => {
+      createExplosion(
+        x + (Math.random() - 0.5) * 30,
+        y + (Math.random() - 0.5) * 30,
+        color,
+        'normal'
+      );
+    }, 120);
+  };
 
   const spawnFirework = (width: number, height: number) => {
-    const x = width * 0.1 + Math.random() * (width * 0.8);
+    // 🎯 Horizontale spreiding op basis van difficulty
+    let horizontalSpread = 0.8;
+    if (selectedDifficulty === Difficulty.HARD) {
+      horizontalSpread = 1.0;
+    } else if (selectedDifficulty === Difficulty.EASY) {
+      horizontalSpread = 0.5;
+    }
+
+    const x = width * ((1 - horizontalSpread) / 2) + Math.random() * (width * horizontalSpread);
     const startY = height;
     
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
@@ -50,17 +193,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     const distance = (vy * estimatedFrames) + (0.5 * GRAVITY * (estimatedFrames * estimatedFrames));
     const targetHeight = startY + distance;
 
+    // 🔄 Zijwaartse drift op basis van difficulty
+    let vxRange = 1;
+    if (selectedDifficulty === Difficulty.HARD) {
+      vxRange = 2;
+    } else if (selectedDifficulty === Difficulty.EASY) {
+      vxRange = 0.5;
+    }
+
     const fw: Firework = {
       id: Date.now() + Math.random(),
       pos: { x, y: startY },
-      vel: { x: (Math.random() - 0.5) * 1, y: vy },
+      vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
       status: FireworkStatus.RISING,
-      fuseTime: 0,
       apexY: targetHeight,
       trail: []
     };
     fireworksRef.current.push(fw);
+  };
+
+  const getParticleColor = (baseColor: string, perfect: boolean) => {
+    if (!perfect) return baseColor;
+    return Math.random() > 0.5 ? '#ffffff' : baseColor;
   };
 
   const createExplosion = (x: number, y: number, color: string, type: 'normal' | 'perfect') => {
@@ -76,7 +231,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
         vel: { x: Math.cos(angle) * v, y: Math.sin(angle) * v },
         life: 1.0,
         maxLife: 1.0,
-        color: type === 'perfect' && Math.random() > 0.5 ? '#fff' : color, 
+        color: getParticleColor(color, type === 'perfect'),
         size: Math.random() * 3 + 1,
         decay: PARTICLE_DECAY * (0.5 + Math.random() * 0.5)
       });
@@ -87,38 +242,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // 🚀 Dynamische lanceerinterval met speed multiplier
+    const currentLaunchInterval = baseLaunchInterval / speedMultiplier;
+
     if (gameState === GameState.PLAYING && !pausedRef.current) {
-      if (time - lastLaunchRef.current > LAUNCH_INTERVAL_MS) {
-        const drift = (time - lastLaunchRef.current) - LAUNCH_INTERVAL_MS;
+      if (time - lastLaunchRef.current > currentLaunchInterval) { 
+        const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
         lastLaunchRef.current = time - drift; 
-        
         spawnFirework(canvas.width, canvas.height);
       }
     }
 
+    // Update fireworks met speed multiplier
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING || fw.status === FireworkStatus.WET || fw.status === FireworkStatus.DUD) {
-        fw.pos.x += fw.vel.x;
-        fw.pos.y += fw.vel.y;
-        fw.vel.y += GRAVITY;
+        fw.pos.x += fw.vel.x * speedMultiplier;
+        fw.pos.y += fw.vel.y * speedMultiplier;
+        fw.vel.y += GRAVITY * speedMultiplier;
 
         if (frameCountRef.current % 3 === 0 && fw.status === FireworkStatus.RISING) {
-            fw.trail.push({ ...fw.pos });
-            if (fw.trail.length > 10) fw.trail.shift();
+          fw.trail.push({ ...fw.pos });
+          if (fw.trail.length > 10) fw.trail.shift();
         }
+        
         if (fw.pos.y > canvas.height + 50) {
-            fw.status = FireworkStatus.DEAD;
-            if (fw.status === FireworkStatus.RISING) {
-                 onScoreUpdate(0, 'wet'); 
-            }
+          fw.status = FireworkStatus.DEAD;
         }
+        
         if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) { 
-             fw.status = FireworkStatus.WET;
-             fw.color = '#555'; 
-             onScoreUpdate(0, 'wet');
+          fw.status = FireworkStatus.WET;
+          fw.color = '#555'; 
         }
       }
     });
+    
     fireworksRef.current = fireworksRef.current.filter(fw => fw.status !== FireworkStatus.DEAD);
 
     particlesRef.current.forEach(p => {
@@ -131,7 +288,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     });
 
     particlesRef.current = particlesRef.current.filter(p => p.life > 0);
-
     frameCountRef.current++;
   };
 
@@ -145,35 +301,35 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     fireworksRef.current.forEach(fw => {
-      if (fw.status === FireworkStatus.RISING) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
-          ctx.lineWidth = 1;
-          if(fw.trail.length > 0) {
-              ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
-              for(let i=1; i<fw.trail.length; i++) ctx.lineTo(fw.trail[i].x, fw.trail[i].y);
-              ctx.stroke();
-          }
+      if (fw.status === FireworkStatus.RISING && fw.trail.length > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
+        for (let i = 1; i < fw.trail.length; i++) {
+          ctx.lineTo(fw.trail[i].x, fw.trail[i].y);
+        }
+        ctx.stroke();
       }
 
       if (fw.status !== FireworkStatus.EXPLODING && fw.status !== FireworkStatus.DEAD) {
         ctx.beginPath();
         ctx.arc(fw.pos.x, fw.pos.y, 4, 0, Math.PI * 2); 
         ctx.fillStyle = fw.color;
-        ctx.fill();
-        
         ctx.shadowBlur = 10;
         ctx.shadowColor = fw.color;
         ctx.fill();
         ctx.shadowBlur = 0;
 
         if (fw.status === FireworkStatus.WET) {
-            ctx.fillStyle = '#64748b';
-            ctx.fillText('NAT', fw.pos.x + 10, fw.pos.y);
+          ctx.fillStyle = '#64748b';
+          ctx.font = '12px Arial';
+          ctx.fillText('NAT', fw.pos.x + 10, fw.pos.y);
         }
         if (fw.status === FireworkStatus.DUD) {
-            ctx.fillStyle = '#64748b';
-            ctx.fillText('MIS', fw.pos.x + 10, fw.pos.y);
+          ctx.fillStyle = '#64748b';
+          ctx.font = '12px Arial';
+          ctx.fillText('MIS', fw.pos.x + 10, fw.pos.y);
         }
       }
     });
@@ -192,14 +348,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     if (gameState === GameState.PLAYING) {
       if (!pausedRef.current) update(time);
       draw();
-    } else {
-      if (gameState === GameState.GAME_OVER) {
-        update(time);
-        draw();
-      }
+    } else if (gameState === GameState.GAME_OVER) {
+      update(time);
+      draw();
     }
     
-    lastTimeRef.current = time;
     requestRef.current = requestAnimationFrame(loop);
   };
 
@@ -211,81 +364,104 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onScoreUpdate, onGam
     }
     
     if (gameState === GameState.PLAYING) {
-        fireworksRef.current = [];
-        particlesRef.current = [];
-        lastLaunchRef.current = performance.now(); 
+      fireworksRef.current = [];
+      particlesRef.current = [];
+      lastLaunchRef.current = performance.now(); 
     }
 
     requestRef.current = requestAnimationFrame(loop);
     return () => {
-        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [gameState]);
 
   useEffect(() => {
-    // keep a ref of paused so the animation loop sees latest value
     pausedRef.current = !!paused;
   }, [paused]);
 
   const handleTrigger = useCallback(() => {
     if (gameState !== GameState.PLAYING) return;
 
-    const candidates = fireworksRef.current.filter(fw => fw.status === FireworkStatus.RISING);
+    const candidates = fireworksRef.current.filter(
+      fw => fw.status === FireworkStatus.RISING
+    );
     if (candidates.length === 0) return;
+
     candidates.sort((a, b) => Math.abs(a.vel.y) - Math.abs(b.vel.y));
-    
-    const target = candidates[0]; 
+    const target = candidates[0];
     const vy = target.vel.y;
 
     if (Math.abs(vy) <= APEX_THRESHOLD) {
-        target.status = FireworkStatus.EXPLODING;
+      target.status = FireworkStatus.EXPLODING;
+
+      const r = Math.random();
+      const WORDS = TEXT_WORDS;
+
+      if (r < 0.2) {
+        const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        createTextExplosion(word, target.pos.x, target.pos.y, target.color);
+      } else if (r < 0.4) {
+        createRingExplosion(target.pos.x, target.pos.y, target.color);
+      } else if (r < 0.6) {
+        createSpiralExplosion(target.pos.x, target.pos.y, target.color);
+      } else if (r < 0.8) {
+        createDoubleExplosion(target.pos.x, target.pos.y, target.color);
+      } else {
         createExplosion(target.pos.x, target.pos.y, target.color, 'perfect');
-        onScoreUpdate(SCORE_PERFECT, 'perfect');
-        target.status = FireworkStatus.DEAD; 
-    } else if (vy < -APEX_THRESHOLD) {
-        if (vy < -6) {
-             target.status = FireworkStatus.DUD;
-             target.color = '#555';
-             target.vel.y *= 0.5; 
-             onScoreUpdate(0, 'miss');
-        } else {
-            target.status = FireworkStatus.EXPLODING;
-            createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
-            onScoreUpdate(SCORE_GOOD, 'good');
-            target.status = FireworkStatus.DEAD;
-        }
-    } else if (vy > APEX_THRESHOLD) {
-        target.status = FireworkStatus.WET;
+      }
+
+      onScoreUpdate(SCORE_PERFECT, 'perfect');
+      target.status = FireworkStatus.DEAD;
+      return;
+    }
+    
+    if (vy < -APEX_THRESHOLD) {
+      if (vy < -6) {
+        target.status = FireworkStatus.DUD;
         target.color = '#555';
-        onScoreUpdate(0, 'wet');
+        target.vel.y *= 0.5;
+        onScoreUpdate(0, 'miss');
+      } else {
+        target.status = FireworkStatus.EXPLODING;
+        createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
+        onScoreUpdate(SCORE_GOOD, 'good');
+        target.status = FireworkStatus.DEAD;
+      }
+      return;
     }
 
+    if (vy > APEX_THRESHOLD) {
+      target.status = FireworkStatus.WET;
+      target.color = '#555';
+      onScoreUpdate(0, 'wet');
+    }
   }, [gameState, onScoreUpdate]);
 
   useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-          if (e.code === 'Space') handleTrigger();
-      };
-      const handleResize = () => {
-          if(canvasRef.current) {
-              canvasRef.current.width = window.innerWidth;
-              canvasRef.current.height = window.innerHeight;
-          }
-      };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') handleTrigger();
+    };
+    
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+      }
+    };
 
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('resize', handleResize);
-      return () => {
-          window.removeEventListener('keydown', handleKeyDown);
-          window.removeEventListener('resize', handleResize);
-      };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [handleTrigger]);
 
   return (
     <canvas 
-        ref={canvasRef} 
-        onClick={handleTrigger}
-        className="absolute top-0 left-0 w-full h-full cursor-pointer touch-none"
+      ref={canvasRef} 
+      onClick={handleTrigger}
+      className="absolute top-0 left-0 w-full h-full cursor-pointer touch-none"
     />
   );
 };
