@@ -6,18 +6,16 @@ export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 
-// 🎯 MOEILIJKHEIDSGRADEN
 export enum Difficulty {
   EASY = 'Makkelijk', 
   NORMAL = 'Normaal', 
   HARD = 'Moeilijk', 
 }
 
-// 🚀 LANCEERSNELHEID MODIFICATOREN
 export const LAUNCH_MODIFIERS = {
-  [Difficulty.EASY]: 1.8,    // 80% langzamer (makkelijker)
-  [Difficulty.NORMAL]: 1.0,  // Normaal (basis)
-  [Difficulty.HARD]: 0.5,    // 50% sneller (zeer moeilijk)
+  [Difficulty.EASY]: 1.8,   
+  [Difficulty.NORMAL]: 1.0,  
+  [Difficulty.HARD]: 0.5,    
 };
 
 export const BASE_LAUNCH_INTERVAL_MS = BEAT_MS * 2;
