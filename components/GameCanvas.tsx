@@ -32,11 +32,11 @@ interface GameCanvasProps {
   
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({
-  gameState,
-  onScoreUpdate,
-  onGameOver,
-  colors,
+const GameCanvas: React.FC<GameCanvasProps> = ({ 
+  gameState, 
+  onScoreUpdate, 
+  onGameOver, 
+  colors, 
   paused = false,
   baseLaunchInterval, 
   speedMultiplier,    
@@ -99,6 +99,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return points;
   };
 
+  const logoImageRef = useRef<HTMLImageElement | null>(null);
+
+useEffect(() => {
+  const img = new Image();
+  img.src = '/img/bram.jpg';
+  logoImageRef.current = img;
+}, []);
+
   const createTextExplosion = (
     text: string,
     x: number,
@@ -143,6 +151,33 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
   };
+
+  const createLogoExplosion = (x: number, y: number) => {
+  if (!logoImageRef.current) return;
+
+  const count = 40;
+  const speed = 4;
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const v = speed + Math.random() * 2;
+
+    particlesRef.current.push({
+      id: Math.random(),
+      pos: { x, y },
+      vel: {
+        x: Math.cos(angle) * v,
+        y: Math.sin(angle) * v
+      },
+      life: 1,
+      maxLife: 1,
+      size: 18, // logo grootte
+      decay: PARTICLE_DECAY * 0.7,
+      image: logoImageRef.current // 👈 KEY
+    });
+  }
+};
+
 
   const createSpiralExplosion = (x: number, y: number, color: string) => {
     const count = 80;
@@ -353,14 +388,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     });
 
-    particlesRef.current.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.pos.x, p.pos.y, p.size, 0, Math.PI * 2);
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.fill();
-      ctx.globalAlpha = 1.0;
-    });
+particlesRef.current.forEach(p => {
+  ctx.globalAlpha = p.life;
+
+  if (p.image) {
+    ctx.drawImage(
+      p.image,
+      p.pos.x - p.size / 2,
+      p.pos.y - p.size / 2,
+      p.size,
+      p.size
+    );
+  } else {
+    ctx.beginPath();
+    ctx.arc(p.pos.x, p.pos.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color || '#fff';
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1.0;
+});
+
   };
 
   const loop = (time: number) => {
@@ -399,24 +447,41 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     pausedRef.current = !!paused;
   }, [paused]);
 
-  const handleTrigger = useCallback(() => {
-    if (gameState !== GameState.PLAYING) return;
+const handleTrigger = useCallback(() => {
+  if (gameState !== GameState.PLAYING) return;
 
-    const candidates = fireworksRef.current.filter(
-      fw => fw.status === FireworkStatus.RISING
-    );
-    if (candidates.length === 0) return;
+  const candidates = fireworksRef.current.filter(
+    fw => fw.status === FireworkStatus.RISING
+  );
+  if (candidates.length === 0) return;
 
-    candidates.sort((a, b) => Math.abs(a.vel.y) - Math.abs(b.vel.y));
-    const target = candidates[0];
-    const vy = target.vel.y;
+  // Kies vuurwerk dichtst bij apex
+  candidates.sort((a, b) => Math.abs(a.vel.y) - Math.abs(b.vel.y));
+  const target = candidates[0];
+  const vy = target.vel.y;
 
-    if (Math.abs(vy) <= APEX_THRESHOLD) {
-      target.status = FireworkStatus.EXPLODING;
+  // 🎯 PERFECT HIT (bij apex)
+  if (Math.abs(vy) <= APEX_THRESHOLD) {
+    target.status = FireworkStatus.EXPLODING;
 
-      const r = Math.random();
-      const WORDS = TEXT_WORDS;
+    const r = Math.random();
 
+    if (r < 0.15) {
+      // 🖼️ Logo-explosie
+      createLogoExplosion(target.pos.x, target.pos.y);
+    } else if (r < 0.35) {
+      createTextExplosion(
+        TEXT_WORDS[Math.floor(Math.random() * TEXT_WORDS.length)],
+        target.pos.x,
+        target.pos.y,
+        target.color
+      );
+    } else if (r < 0.55) {
+      createRingExplosion(target.pos.x, target.pos.y, target.color);
+    } else if (r < 0.75) {
+      createSpiralExplosion(target.pos.x, target.pos.y, target.color);
+    } else {
+      createExplosion(target.pos.x, target.pos.y, target.color, 'perfect');
       if (r < 0.2) {
         const word = WORDS[Math.floor(Math.random() * WORDS.length)];
         createTextExplosion(word, target.pos.x, target.pos.y, target.color);
@@ -449,12 +514,37 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
 
-    if (vy > APEX_THRESHOLD) {
-      target.status = FireworkStatus.WET;
+    onScoreUpdate(SCORE_PERFECT, 'perfect');
+    target.status = FireworkStatus.DEAD;
+    return;
+  }
+
+  // ⏫ TE VROEG
+  if (vy < -APEX_THRESHOLD) {
+    if (vy < -6) {
+      // ❌ MIS
+      target.status = FireworkStatus.DUD;
       target.color = '#555';
-      onScoreUpdate(0, 'wet');
+      target.vel.y *= 0.5;
+      onScoreUpdate(0, 'miss');
+    } else {
+      // 👍 GOOD
+      target.status = FireworkStatus.EXPLODING;
+      createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
+      onScoreUpdate(SCORE_GOOD, 'good');
+      target.status = FireworkStatus.DEAD;
     }
-  }, [gameState, onScoreUpdate]);
+    return;
+  }
+
+  // ⏬ TE LAAT
+  if (vy > APEX_THRESHOLD) {
+    target.status = FireworkStatus.WET;
+    target.color = '#555';
+    onScoreUpdate(0, 'wet');
+  }
+}, [gameState, onScoreUpdate]);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

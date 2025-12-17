@@ -42,13 +42,14 @@ export interface Firework {
 
 export interface Particle {
   id: number;
-  pos: Coordinates;
-  vel: Vector;
+  pos: { x: number; y: number };
+  vel: { x: number; y: number };
   life: number;
   maxLife: number;
-  color: string;
+  color?: string;
   size: number;
   decay: number;
+  image?: HTMLImageElement; // 👈 NIEUW
 }
 
 export interface ScoreStats {

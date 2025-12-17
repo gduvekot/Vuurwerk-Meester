@@ -6,18 +6,16 @@ export var OFFSET = 1;
 
 export var LAUNCH_INTERVAL_MS = BEAT_MS * 2; 
 
-
 export enum Difficulty {
   EASY = 'Makkelijk', 
   NORMAL = 'Normaal', 
   HARD = 'Moeilijk', 
 }
 
-
 export const LAUNCH_MODIFIERS = {
-  [Difficulty.EASY]: 1.5,    
-  [Difficulty.NORMAL]: 1.0, 
-  [Difficulty.HARD]: 0.7,    
+  [Difficulty.EASY]: 1.8,   
+  [Difficulty.NORMAL]: 1.0,  
+  [Difficulty.HARD]: 0.5,    
 };
 
 
