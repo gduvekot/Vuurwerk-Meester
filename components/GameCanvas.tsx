@@ -304,6 +304,7 @@ useEffect(() => {
     const currentLaunchInterval = BEAT_MS / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
+
       // Gebruik de dynamische interval
       if (time - lastLaunchRef.current > currentLaunchInterval) {
         const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
