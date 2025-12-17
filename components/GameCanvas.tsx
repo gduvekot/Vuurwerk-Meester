@@ -435,7 +435,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
     if (vy < -APEX_THRESHOLD) {
-      if (vy < -3) {
+      if (vy < -2.3) {
         target.status = FireworkStatus.DUD;
         target.color = '#555';
         target.vel.y *= 0.5;

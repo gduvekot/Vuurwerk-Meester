@@ -36,8 +36,7 @@ export const FIREWORK_COLORS = [
   { value: '#ffffff', class: 'bg-white' }
 ];
 
-
-export const APEX_THRESHOLD = 0.45; 
+export const APEX_THRESHOLD = 0.7; 
 export const LATE_THRESHOLD = 2.0; 
 export const EARLY_THRESHOLD = -2.0; 
 export const SCORE_PERFECT = 100;
