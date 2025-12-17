@@ -34,9 +34,11 @@ const App: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
   const [currentBpm, setCurrentBpm] = useState(128); //bpm
   const [paused, setPausedState] = useState(false);
+  const [bestScore, setBestScore] = useState<number>(0);
   const startTimeRef = useRef<number>(0);
   const [stats, setStats] = useState<ScoreStats>({
     score: 0,
+    bestScore: 0,
     combo: 0,
     maxCombo: 0,
     hits: 0,
@@ -100,6 +102,13 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const storedScore = localStorage.getItem('vuurwerk-best-score');
+    if (storedScore) {
+      setBestScore(parseInt(storedScore, 10));
+    }
+  }, []);
+
   const showToast = (text: string, duration = 3500) => {
     setToast(text);
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -117,12 +126,15 @@ const App: React.FC = () => {
 
     setStats({
       score: 0,
+      bestScore: bestScore,
       combo: 0,
       maxCombo: 0,
       hits: 0,
       misses: 0,
       perfects: 0
     });
+
+    setIsLoading(true);
 
     try {
       if (!practiceMode) {
@@ -143,34 +155,6 @@ const App: React.FC = () => {
         setTimeLeft(0);
         setGameState(GameState.PLAYING);
       }
-      console.log(`Laden: ${selectedSong.title} met ${selectedSong.bpm} BPM`);
-      // set song bpm
-      audioManager.setBpm(selectedSong.bpm);
-
-
-      setCurrentBpm(selectedSong.bpm);
-      updateSongSettings(selectedSong.bpm, selectedSong.delay);
-      // load track
-      await audioManager.loadTrack(selectedSong.url);
-
-      setTimeLeft(GAME_DURATION_MS / 1000);
-
-      audioManager.resume();
-
-
-
-      setTimeout(() => {
-        // Nu pas de muziek starten
-        audioManager.start();
-
-        // En NU pas het spel op 'PLAYING' zetten
-        // Zodat de timer en de game loop synchroon lopen met de muziek
-        setGameState(GameState.PLAYING);
-
-      }, selectedSong.delay || 0);
-
-
-      setGameState(GameState.PLAYING);
     } catch (error) {
       console.error("Fout:", error);
       alert("Kon track niet laden.");
@@ -182,6 +166,12 @@ const App: React.FC = () => {
   const endGame = () => {
     // determine whether the player completed the full run
     const completedFullRun = timeLeft <= 0;
+
+    if (!practiceMode && stats.score > bestScore) {
+      const newScore = stats.score;
+      setBestScore(newScore);
+      localStorage.setItem('vuurwerk-best-score', newScore.toString());
+    }
 
     // evaluate and persist achievements based on stats
     const updated = evaluateEndOfGame(stats, completedFullRun);
@@ -355,6 +345,7 @@ const App: React.FC = () => {
       let newHits = prev.hits;
       let newMisses = prev.misses;
       let newPerfects = prev.perfects;
+      let newBestScore = prev.bestScore;
 
       if (accuracy === 'miss' || accuracy === 'wet') {
         newCombo = 0;
@@ -376,6 +367,7 @@ const App: React.FC = () => {
 
       return {
         score: newScore,
+        bestScore: newBestScore,
         combo: newCombo,
         maxCombo: Math.max(prev.maxCombo, newCombo),
         hits: newHits,
@@ -420,7 +412,13 @@ const App: React.FC = () => {
           <h1 onClick={handleTitleClick} className="cursor-pointer text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
             Scalda Spark
           </h1>
-
+          
+          <div className="mb-8 px-6 py-2 bg-slate-800/80 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+            <p className="text-yellow-400 font-bold text-xl tracking-wider">
+              🏆 BESTE SCORE: {bestScore}
+            </p>
+          </div>
+          
           <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
             Luister naar de beat! 🎵
             <br />
