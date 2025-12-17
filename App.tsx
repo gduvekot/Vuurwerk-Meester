@@ -22,12 +22,13 @@ import AdvancedModal from './components/AdvancedModal';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 const SONGS = [
-  { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 400 },
+  { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 650 },
   { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 10 },
   { id: '3', title: 'Progressive House 2', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 }
 ];
 
 const App: React.FC = () => {
+  const [beatActive, setBeatActive] = useState(false);
   const [selectedSongUrl, setSelectedSongUrl] = useState<string>(SONGS[0].url);
   const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -87,6 +88,14 @@ const App: React.FC = () => {
 
   // Ref voor de gekozen basisinterval
   const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
+
+      // Helper functie om de beat kort te triggeren
+  const handleBeat = () => {
+    console.log("2. App: Ik heb het signaal ontvangen!"); // <--- LOG
+    setBeatActive(true);
+    // Zet de glow na 100ms weer uit
+    setTimeout(() => setBeatActive(false), 100);
+  };
 
   // Load leaderboard from localStorage on mount
   useEffect(() => {
@@ -292,11 +301,11 @@ const App: React.FC = () => {
       if (remainingTimeSeconds > 15) {
         return 1.0;  // Normale snelheid
       } else if (remainingTimeSeconds > 10) {
-        return 1.35; // Versnelling 1 (35% sneller)
+        return 1; // Versnelling 1 (35% sneller)
       } else if (remainingTimeSeconds > 5) {
-        return 1.8;  // Versnelling 2 (80% sneller)
+        return 1;  // Versnelling 2 (80% sneller)
       } else if (remainingTimeSeconds > 0) {
-        return 2.5;  // Versnelling 3 (150% sneller - CHAOS!)
+        return 1;  // Versnelling 3 (150% sneller - CHAOS!)
       }
       return 1.0;
     };
@@ -385,6 +394,7 @@ const App: React.FC = () => {
     });
   };
 
+
   const showFeedback = (text: string) => {
     setLastFeedback(text);
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
@@ -394,7 +404,14 @@ const App: React.FC = () => {
   };
 
   return (
+
+    
+    
     <div className="relative w-screen h-screen overflow-hidden bg-slate-900 select-none">
+
+
+
+
       <GameCanvas
         gameState={gameState}
         onScoreUpdate={handleScoreUpdate}
@@ -406,6 +423,7 @@ const App: React.FC = () => {
         baseLaunchInterval={baseGameIntervalRef.current}
         speedMultiplier={speedMultiplier}
         selectedDifficulty={selectedDifficulty}
+         onBeat={handleBeat} 
       />
 
       {toast && (
@@ -742,6 +760,7 @@ const App: React.FC = () => {
             onTogglePause={setPausedState}
             onStop={handleStopGame}
             practiceMode={practiceMode}
+            beatActive={beatActive}
           />
 
           {practiceMode && (
@@ -833,8 +852,20 @@ const App: React.FC = () => {
           achievements={achievements}
         />
       )}
+
+      
+
     </div>
+
+    
+    
   );
+  
+  
 };
+
+
+
+
 
 export default App;
