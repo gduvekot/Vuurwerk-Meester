@@ -16,6 +16,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, timeLeft, lastFeedback, pa
       <div className="flex justify-between items-start">
         <div className="flex flex-col gap-1">
           <div className="text-white text-4xl font-bold drop-shadow-lg font-mono">
+            <h3>Best score: {stats.bestScore.toLocaleString()}</h3>
             {stats.score.toLocaleString()}
           </div>
           <div className="text-pink-400 text-xl font-bold drop-shadow-md">

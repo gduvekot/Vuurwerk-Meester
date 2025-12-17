@@ -12,8 +12,12 @@ audioManager.loadTrack('./audio/song.mp3')
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
+  
+  const [highestScore, setHighestScore] = useState<number>(0);
+
   const [stats, setStats] = useState<ScoreStats>({
     score: 0,
+    bestScore: 0,
     combo: 0,
     maxCombo: 0,
     hits: 0,
@@ -35,10 +39,17 @@ const App: React.FC = () => {
   ]);
   const [customColor, setCustomColor] = useState('#ff0000');
 
+  useEffect(() => {
+    const storedScore = localStorage.getItem('scalda_spark_highscore');
+    if (storedScore) {
+      setHighestScore(parseInt(storedScore, 10));
+    }
+  }, []);
 
   const startGame = () => {
     setStats({
-      score: 0,
+      score: 0,  
+      bestScore: highestScore,
       combo: 0,
       maxCombo: 0,
       hits: 0,
@@ -59,6 +70,11 @@ const App: React.FC = () => {
     audioManager.stop();
     setPaused(false);
     if (timerRef.current) clearInterval(timerRef.current);
+
+    if (stats.score > highestScore) {
+      setHighestScore(stats.score);
+      localStorage.setItem('scalda_spark_highscore', stats.score.toString());
+    }
   };
 
   const setPausedState = (p: boolean) => {
@@ -73,9 +89,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Start or stop the timer depending on gameState and paused
     if (gameState === GameState.PLAYING && !paused) {
-      // calculate startTime so remaining continues from current `timeLeft`
       startTimeRef.current = Date.now() - Math.round((GAME_DURATION_MS - timeLeft * 1000));
       timerRef.current = window.setInterval(() => {
         if (!startTimeRef.current) return;
@@ -101,6 +115,12 @@ const App: React.FC = () => {
       }
     };
   }, [gameState, paused]);
+
+  useEffect(() => {
+      if (timeLeft <= 0 && gameState === GameState.PLAYING) {
+          endGame();
+      }
+  }, [timeLeft, gameState]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -140,6 +160,7 @@ const App: React.FC = () => {
       }
 
       return {
+        ...prev,
         score: newScore,
         combo: newCombo,
         maxCombo: Math.max(prev.maxCombo, newCombo),
@@ -176,9 +197,15 @@ const App: React.FC = () => {
             alt="Scalda logo"
             className="w-32 md:w-40 mb-6 drop-shadow-xl"
           />
-          <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-8 drop-shadow-2xl">
+          <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 via-yellow-500 to-purple-600 mb-4 drop-shadow-2xl">
             Scalda Spark
           </h1>
+
+          <div className="mb-8 px-6 py-2 bg-slate-800/80 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+            <p className="text-yellow-400 font-bold text-xl tracking-wider">
+              🏆 BESTE SCORE: {highestScore.toLocaleString()}
+            </p>
+          </div>
 
           <p className="text-slate-300 mb-6 text-center max-w-md leading-relaxed text-lg">
             Luister naar de beat! 🎵
