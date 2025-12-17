@@ -22,11 +22,11 @@ import AdvancedModal from './components/AdvancedModal';
 import { GameState, ScoreStats, LeaderboardEntry } from './types';
 import { audioManager } from './utils/audio';
 const SONGS = [
-  { id: '1', title: 'Progressive House', url: './audio/djruben.mp3', bpm: 132, delay: 650 },
-  { id: '2', title: 'Techno', url: './audio/djrubenburn.mp3', bpm: 138, delay: 10 },
-  { id: '3', title: 'Progressive House 2', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 },
-  { id: '4', title: 'Martin Garrix', url: './audio/MartinGarrix1.mp3', bpm: 126, delay: 0 },
-  { id: '5', title: 'Oliver Heldens', url: './audio/HiLo.mp3', bpm: 132, delay: 0 },
+  { id: '1', title: 'DJ Ruben - ID', url: './audio/djruben.mp3', bpm: 132, delay: 650 },
+  { id: '2', title: 'DJ Ruben - Burn', url: './audio/djrubenburn.mp3', bpm: 138, delay: 2000 },
+  { id: '3', title: 'DJ Ruben - Nostalgia', url: './audio/djrubennostalgia.mp3', bpm: 132, delay: 0 },
+  { id: '4', title: 'Martin Garrix - Peace of Mind', url: './audio/MartinGarrix1.mp3', bpm: 126, delay: 1500 },
+  { id: '5', title: 'Oliver Heldens - Disco Voyager', url: './audio/HiLo.mp3', bpm: 125, delay: 1250 },
     { id: '6', title: 'Charlie Kirk song remix', url: './audio/charliekirkremix.mp3', bpm: 133, delay: 0 }
 
 ];
