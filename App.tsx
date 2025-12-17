@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// GEWIJZIGDE IMPORTS: Alle constanten die we nodig hebben
 import {
   FIREWORK_COLORS,
   GAME_DURATION_MS,
@@ -37,7 +36,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_MS / 1000);
-  const [currentBpm, setCurrentBpm] = useState(128); //bpm
+  const [currentBpm, setCurrentBpm] = useState(128);
   const [paused, setPausedState] = useState(false);
   const [bestScore, setBestScore] = useState<number>(0);
   const startTimeRef = useRef<number>(0);
@@ -52,7 +51,6 @@ const App: React.FC = () => {
   });
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
 
-  // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerRank, setPlayerRank] = useState<number | undefined>(undefined);
   const [achievements, setAchievements] = useState(() => getAchievements());
@@ -76,7 +74,6 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
-  // Charlie easter egg refs/state
   const charlieTitleClicks = useRef<number>(0);
   const charlieTitleTimer = useRef<number | null>(null);
   const keyBuffer = useRef<string>('');
@@ -88,22 +85,17 @@ const App: React.FC = () => {
 
   const [customTrailColor, setCustomTrailColor] = useState('#ffffff');
 
-  // NIEUWE STATEN voor moeilijkheidsgraad en snelheid
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); // Dynamische versneller
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0); 
 
-  // Ref voor de gekozen basisinterval
   const baseGameIntervalRef = useRef(BASE_LAUNCH_INTERVAL_MS);
 
-      // Helper functie om de beat kort te triggeren
   const handleBeat = () => {
-    console.log("2. App: Ik heb het signaal ontvangen!"); // <--- LOG
+    console.log("2. App: Ik heb het signaal ontvangen!"); 
     setBeatActive(true);
-    // Zet de glow na 100ms weer uit
     setTimeout(() => setBeatActive(false), 100);
   };
 
-  // Load leaderboard from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('vuurwerk-leaderboard');
     if (saved) {
@@ -125,17 +117,15 @@ const App: React.FC = () => {
   const showToast = (text: string, duration = 3500) => {
     setToast(text);
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    // @ts-ignore
     toastTimeoutRef.current = window.setTimeout(() => setToast(null), duration);
   };
 
 
   const startGame = async () => {
     const selectedSong = SONGS.find(s => s.url === selectedSongUrl);
-    // 1. Bepaal de basis lanceerinterval op basis van moeilijkheidsgraad
     const initialInterval = BASE_LAUNCH_INTERVAL_MS * LAUNCH_MODIFIERS[selectedDifficulty];
-    baseGameIntervalRef.current = initialInterval; // Sla op voor GameCanvas
-    setSpeedMultiplier(1.0); // Reset de dynamische versneller
+    baseGameIntervalRef.current = initialInterval; 
+    setSpeedMultiplier(1.0); 
 
     setStats({
       score: 0,
@@ -164,7 +154,6 @@ const App: React.FC = () => {
           setGameState(GameState.PLAYING);
         }, selectedSong.delay || 0);
       } else {
-        // Practice mode: geen muziek, geen timer
         setTimeLeft(0);
         setGameState(GameState.PLAYING);
       }
@@ -177,7 +166,6 @@ const App: React.FC = () => {
   };
 
   const endGame = () => {
-    // determine whether the player completed the full run
     const completedFullRun = timeLeft <= 0;
 
     if (!practiceMode && stats.score > bestScore) {
@@ -186,7 +174,6 @@ const App: React.FC = () => {
       localStorage.setItem('vuurwerk-best-score', newScore.toString());
     }
 
-    // evaluate and persist achievements based on stats
     const updated = evaluateEndOfGame(stats, completedFullRun);
     setAchievements(updated);
 
@@ -195,11 +182,9 @@ const App: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  // Title-click Charlie easter egg: 7 clicks within 3s
   const handleTitleClick = () => {
     charlieTitleClicks.current += 1;
     if (charlieTitleTimer.current) clearTimeout(charlieTitleTimer.current as number);
-    // @ts-ignore
     charlieTitleTimer.current = window.setTimeout(() => { charlieTitleClicks.current = 0; }, 3000);
 
     if (charlieTitleClicks.current >= 7 && Date.now() - (charlieCooldown.current || 0) > 8000) {
@@ -212,7 +197,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Global key-sequence listener for 'CHARLIE' easter egg
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toUpperCase();
@@ -220,7 +204,6 @@ const App: React.FC = () => {
         keyBuffer.current = (keyBuffer.current + k).slice(-12);
         if (keyBuffer.current.endsWith('CHARLIE') && Date.now() - (charlieCooldown.current || 0) > 8000) {
           charlieCooldown.current = Date.now();
-          // reward/feedback: bonus points + feedback
           setStats(prev => ({ ...prev, score: prev.score + 3000 }));
           setLastFeedback('CHARLIE BLAST!');
           showToast('Charlie Blast activated! +3000 score');
@@ -247,7 +230,6 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    // Easter egg: if playerName contains 'charlie' or 'kirk', special behaviour
     try {
       const lower = playerName.toLowerCase();
       if (lower.includes('charlie') || lower.includes('kirk')) {
@@ -259,16 +241,13 @@ const App: React.FC = () => {
     const updatedLeaderboard = [...leaderboard, newEntry];
     setLeaderboard(updatedLeaderboard);
 
-    // Save to localStorage
     localStorage.setItem('vuurwerk-leaderboard', JSON.stringify(updatedLeaderboard));
 
-    // Find and set player rank (0-indexed)
     const sortedByScore = updatedLeaderboard
       .sort((a, b) => b.score - a.score);
     const rank = sortedByScore.findIndex(e => e.id === newEntry.id);
     setPlayerRank(rank);
 
-    // Show leaderboard
     setGameState(GameState.LEADERBOARD);
   };
 
@@ -290,16 +269,15 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // FUNCTIE: Berekent de dynamische versneller (agressiever in de laatste 15s)
     const calculateSpeedMultiplier = (remainingTimeSeconds: number): number => {
       if (remainingTimeSeconds > 15) {
-        return 1.0;  // Normale snelheid
+        return 1.0; 
       } else if (remainingTimeSeconds > 10) {
-        return 1; // Versnelling 1 (35% sneller)
+        return 1; 
       } else if (remainingTimeSeconds > 5) {
-        return 1;  // Versnelling 2 (80% sneller)
+        return 1; 
       } else if (remainingTimeSeconds > 0) {
-        return 1;  // Versnelling 3 (150% sneller - CHAOS!)
+        return 1; 
       }
       return 1.0;
     };
