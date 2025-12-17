@@ -23,6 +23,7 @@ interface GameCanvasProps {
   onScoreUpdate: (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => void;
   onGameOver: () => void;
   colors: string[];
+  trailColors: string[];
   paused?: boolean;
   baseLaunchInterval: number;
   speedMultiplier: number;
@@ -37,6 +38,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   onScoreUpdate,
   onGameOver,
   colors,
+  trailColors,
   paused = false,
   baseLaunchInterval,
   speedMultiplier,
@@ -255,6 +257,7 @@ useEffect(() => {
       pos: { x, y: startY },
       vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
+      trailColor: trailColors[Math.floor(Math.random() * trailColors.length)],
       status: FireworkStatus.RISING,
       apexY: targetHeight,
       trail: [],
