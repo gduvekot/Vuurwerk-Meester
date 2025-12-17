@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { 
-  GameState, 
-  Firework, 
-  Particle, 
-  FireworkStatus 
+import {
+  GameState,
+  Firework,
+  Particle,
+  FireworkStatus
 } from '../types';
 import {
   GRAVITY,
@@ -32,14 +32,14 @@ interface GameCanvasProps {
   
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ 
-  gameState, 
-  onScoreUpdate, 
-  onGameOver, 
-  colors, 
+const GameCanvas: React.FC<GameCanvasProps> = ({
+  gameState,
+  onScoreUpdate,
+  onGameOver,
+  colors,
   paused = false,
-  baseLaunchInterval, 
-  speedMultiplier,    
+  baseLaunchInterval,
+  speedMultiplier,
   selectedDifficulty,
   onBeat,
   timeLeft = 60
@@ -53,12 +53,21 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastLaunchRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
   const timeLeftRef = useRef(timeLeft);
+  const starsRef = useRef<{ x: number; y: number; r: number }[]>([]);
+
+  useEffect(() => {
+    starsRef.current = Array.from({ length: 200 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.5 + 0.5
+    }));
+  }, []);
 
   useEffect(() => {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
 
-  const TEXT_WORDS = ['CHARLIE KIRK']; 
+  const TEXT_WORDS = ['CHARLIE KIRK'];
 
   const getTextPoints = (
     text: string,
@@ -223,12 +232,14 @@ useEffect(() => {
 
     const x = width * ((1 - horizontalSpread) / 2) + Math.random() * (width * horizontalSpread);
     const startY = height;
-    
+
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
     const estimatedFrames = durationMs / 11.666;
+
     const vy = -11;
 
     const distance = 10;
+
     const targetHeight = startY + distance;
 
     // 🔄 Zijwaartse drift op basis van difficulty
@@ -312,7 +323,7 @@ useEffect(() => {
           fw.trail.push({ ...fw.pos });
           if (fw.trail.length > 10) fw.trail.shift();
         }
-        
+
         if (fw.pos.y > canvas.height + 50) {
           fw.status = FireworkStatus.DEAD;
           if (fw.status === FireworkStatus.RISING) {
@@ -320,6 +331,7 @@ useEffect(() => {
             onScoreUpdate(0, 'wet');
           }
         }
+
         if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) {
           // Hier wordt hij 'wet' als hij te ver valt zonder geklikt te worden.
           fw.status = FireworkStatus.WET;
@@ -327,7 +339,7 @@ useEffect(() => {
         }
       }
     });
-    
+
     fireworksRef.current = fireworksRef.current.filter(fw => fw.status !== FireworkStatus.DEAD);
 
     particlesRef.current.forEach(p => {
@@ -352,10 +364,19 @@ useEffect(() => {
     ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    ctx.fillStyle = '#ffffff';
+    starsRef.current.forEach(star => {
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING) {
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+        ctx.strokeStyle = fw.trailColor ? fw.trailColor : 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         if (fw.trail.length > 0) {
           ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
@@ -420,7 +441,7 @@ particlesRef.current.forEach(p => {
       update(time);
       draw();
     }
-    
+
     requestRef.current = requestAnimationFrame(loop);
   };
 
@@ -499,6 +520,7 @@ const handleTrigger = useCallback(() => {
       target.status = FireworkStatus.DEAD;
       return;
     }
+
     if (vy < -APEX_THRESHOLD) {
       if (vy < -3) {
         target.status = FireworkStatus.DUD;
@@ -551,6 +573,7 @@ const handleTrigger = useCallback(() => {
         if (onBeat) onBeat();
       if (e.code === 'Space') handleTrigger();
     };
+
     const handleResize = () => {
       if (canvasRef.current) {
         canvasRef.current.width = window.innerWidth;
