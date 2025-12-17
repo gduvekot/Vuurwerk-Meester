@@ -15,9 +15,6 @@ import {
   PARTICLE_DECAY,
   BEAT_MS,
   FLIGHT_DURATION_BEATS,
-  Difficulty,
-  COMBO_SPEED_DECREMENT_MS, // NIEUW
-  MIN_LAUNCH_INTERVAL_MS    // NIEUW
 } from '../constants';
 
 interface GameCanvasProps {
@@ -25,15 +22,14 @@ interface GameCanvasProps {
   onScoreUpdate: (points: number, accuracy: 'perfect' | 'good' | 'miss' | 'wet') => void;
   onGameOver: () => void;
   colors: string[];
-  trailColors?: string[];
+  trailColors: string[];      // ✅ TOEVOEGEN
   paused?: boolean;
   baseLaunchInterval: number;
   speedMultiplier: number;
-  selectedDifficulty: Difficulty;
-  combo: number; // NIEUW
   timeLeft?: number;
-  onBeat?: () => void;
+  onBeat?: () => void;        // ✅ TOEVOEGEN
 }
+
 
 const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState,
@@ -45,7 +41,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   baseLaunchInterval,
   speedMultiplier,
   selectedDifficulty,
-  combo, // NIEUW
   onBeat,
   timeLeft = 60
 }) => {
@@ -58,15 +53,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastLaunchRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
   const timeLeftRef = useRef(timeLeft);
-  const comboRef = useRef(combo); // Ref voor combo
+  const starsRef = useRef<{ x: number; y: number; r: number }[]>([]);
+
+  useEffect(() => {
+    starsRef.current = Array.from({ length: 200 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.5 + 0.5
+    }));
+  }, []);
 
   useEffect(() => {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
-
-  useEffect(() => {
-    comboRef.current = combo; // Update combo ref
-  }, [combo]);
 
   const TEXT_WORDS = ['CHARLIE KIRK'];
 
@@ -111,11 +110,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const logoImageRef = useRef<HTMLImageElement | null>(null);
 
-  useEffect(() => {
-    const img = new Image();
-    img.src = '/img/bram.jpg';
-    logoImageRef.current = img;
-  }, []);
+useEffect(() => {
+  const img = new Image();
+  img.src = '/img/bram.jpg';
+  logoImageRef.current = img;
+}, []);
 
   const createTextExplosion = (
     text: string,
@@ -163,27 +162,31 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const createLogoExplosion = (x: number, y: number) => {
-    if (!logoImageRef.current) return;
-    const count = 40;
-    const speed = 4;
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      const v = speed + Math.random() * 2;
-      particlesRef.current.push({
-        id: Math.random(),
-        pos: { x, y },
-        vel: {
-          x: Math.cos(angle) * v,
-          y: Math.sin(angle) * v
-        },
-        life: 1,
-        maxLife: 1,
-        size: 18,
-        decay: PARTICLE_DECAY * 0.7,
-        image: logoImageRef.current
-      });
-    }
-  };
+  if (!logoImageRef.current) return;
+
+  const count = 40;
+  const speed = 4;
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const v = speed + Math.random() * 2;
+
+    particlesRef.current.push({
+      id: Math.random(),
+      pos: { x, y },
+      vel: {
+        x: Math.cos(angle) * v,
+        y: Math.sin(angle) * v
+      },
+      life: 1,
+      maxLife: 1,
+      size: 18, // logo grootte
+      decay: PARTICLE_DECAY * 0.7,
+      image: logoImageRef.current // 👈 KEY
+    });
+  }
+};
+
 
   const createSpiralExplosion = (x: number, y: number, color: string) => {
     const count = 80;
@@ -221,7 +224,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const spawnFirework = (width: number, height: number) => {
     // 🎯 Horizontale spreiding op basis van difficulty
     let horizontalSpread = 0.8;
-    if (selectedDifficulty === Difficulty.HARD || selectedDifficulty === Difficulty.EXTREME) {
+    if (selectedDifficulty === Difficulty.HARD) {
       horizontalSpread = 1.0;
     } else if (selectedDifficulty === Difficulty.EASY) {
       horizontalSpread = 0.5;
@@ -231,14 +234,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const startY = height;
 
     const durationMs = FLIGHT_DURATION_BEATS * BEAT_MS;
+    const estimatedFrames = durationMs / 11.666;
+
     const vy = -11;
 
-    const targetHeight = startY + 10;
+    const distance = 10;
+
+    const targetHeight = startY + distance;
 
     // 🔄 Zijwaartse drift op basis van difficulty
     let vxRange = 1;
-    if (selectedDifficulty === Difficulty.HARD || selectedDifficulty === Difficulty.EXTREME) {
-      vxRange = 2.5; // Meer drift op hard/extreme
+    if (selectedDifficulty === Difficulty.HARD) {
+      vxRange = 2;
     } else if (selectedDifficulty === Difficulty.EASY) {
       vxRange = 0.5;
     }
@@ -248,9 +255,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       pos: { x, y: startY },
       vel: { x: (Math.random() - 0.5) * vxRange, y: vy },
       color: colors[Math.floor(Math.random() * colors.length)],
+      trailColor: trailColors[Math.floor(Math.random() * trailColors.length)],
       status: FireworkStatus.RISING,
       apexY: targetHeight,
       trail: [],
+      
     };
     fireworksRef.current.push(fw);
   };
@@ -281,40 +290,36 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const update = (time: number) => {
-
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // HIER GEBEURT DE MAGIE: Snelheid op basis van COMBO en DIFFICILTY
-    // 1. Haal huidige combo op
-    const currentCombo = comboRef.current;
+    const currentTime = timeLeftRef.current;
+    const dynamicSpeedMultiplier = (currentTime <= 20 && currentTime >= 10) ? 2 : 1.0;
 
-    // 2. Bereken hoeveel sneller we moeten gaan (25ms sneller per combo punt)
-    const comboSpeedUp = currentCombo * COMBO_SPEED_DECREMENT_MS;
-
-    // 3. Pas dit toe op de basis interval
-    let calculatedInterval = baseLaunchInterval - comboSpeedUp;
-
-    // 4. Deel door de tijd-versneller (de speedMultiplier die oploopt als tijd bijna op is)
-    calculatedInterval = calculatedInterval / speedMultiplier;
-
-    // 5. Zorg dat het nooit onmogelijk snel gaat
-    const finalInterval = Math.max(MIN_LAUNCH_INTERVAL_MS, calculatedInterval);
+    // Bepaal de actuele lanceerinterval met dynamische versnelling
+    // Lager interval = snellere lancering
+    const currentLaunchInterval = BEAT_MS / speedMultiplier;
 
     if (gameState === GameState.PLAYING && !pausedRef.current) {
-      if (time - lastLaunchRef.current > finalInterval) {
-        lastLaunchRef.current = time;
+
+      // Gebruik de dynamische interval
+      if (time - lastLaunchRef.current > currentLaunchInterval) {
+        const drift = (time - lastLaunchRef.current) - currentLaunchInterval;
+        lastLaunchRef.current = time - drift;
+
         spawnFirework(canvas.width, canvas.height);
+
       }
     }
 
-    // Update fireworks physics
+    // Update fireworks met speed multiplier
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING || fw.status === FireworkStatus.WET || fw.status === FireworkStatus.DUD) {
 
-        fw.pos.x += fw.vel.x;
-        fw.pos.y += fw.vel.y;
-        fw.vel.y += GRAVITY;
+        fw.pos.x += fw.vel.x * dynamicSpeedMultiplier;
+        fw.pos.y += fw.vel.y * dynamicSpeedMultiplier;
+        fw.vel.y += GRAVITY * dynamicSpeedMultiplier;
 
         if (frameCountRef.current % 3 === 0 && fw.status === FireworkStatus.RISING) {
           fw.trail.push({ ...fw.pos });
@@ -324,10 +329,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (fw.pos.y > canvas.height + 50) {
           fw.status = FireworkStatus.DEAD;
           if (fw.status === FireworkStatus.RISING) {
+            // Wordt 'wet' als hij de bodem bereikt zonder ontploffing
             onScoreUpdate(0, 'wet');
           }
         }
+
         if (fw.status === FireworkStatus.RISING && fw.vel.y > 8) {
+          // Hier wordt hij 'wet' als hij te ver valt zonder geklikt te worden.
           fw.status = FireworkStatus.WET;
           fw.color = '#555';
         }
@@ -358,10 +366,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    ctx.fillStyle = '#ffffff';
+    starsRef.current.forEach(star => {
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
     fireworksRef.current.forEach(fw => {
       if (fw.status === FireworkStatus.RISING) {
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+        ctx.strokeStyle = fw.trailColor ? fw.trailColor : 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         if (fw.trail.length > 0) {
           ctx.moveTo(fw.trail[0].x, fw.trail[0].y);
@@ -394,29 +411,33 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     });
 
-    particlesRef.current.forEach(p => {
-      ctx.globalAlpha = p.life;
-      if (p.image) {
-        ctx.drawImage(
-          p.image,
-          p.pos.x - p.size / 2,
-          p.pos.y - p.size / 2,
-          p.size,
-          p.size
-        );
-      } else {
-        ctx.beginPath();
-        ctx.arc(p.pos.x, p.pos.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color || '#fff';
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1.0;
-    });
+particlesRef.current.forEach(p => {
+  ctx.globalAlpha = p.life;
+
+  if (p.image) {
+    ctx.drawImage(
+      p.image,
+      p.pos.x - p.size / 2,
+      p.pos.y - p.size / 2,
+      p.size,
+      p.size
+    );
+  } else {
+    ctx.beginPath();
+    ctx.arc(p.pos.x, p.pos.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color || '#fff';
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1.0;
+});
+
   };
 
   const loop = (time: number) => {
     if (gameState === GameState.PLAYING) {
       if (!pausedRef.current) update(time);
+
       draw();
     } else if (gameState === GameState.GAME_OVER) {
       update(time);
@@ -449,49 +470,61 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     pausedRef.current = !!paused;
   }, [paused]);
 
-  const handleTrigger = useCallback(() => {
-    if (gameState !== GameState.PLAYING) return;
+const handleTrigger = useCallback(() => {
+  if (gameState !== GameState.PLAYING) return;
 
-    const candidates = fireworksRef.current.filter(
-      fw => fw.status === FireworkStatus.RISING
-    );
-    if (candidates.length === 0) return;
+  const candidates = fireworksRef.current.filter(
+    fw => fw.status === FireworkStatus.RISING
+  );
+  if (candidates.length === 0) return;
 
-    candidates.sort((a, b) => Math.abs(a.vel.y) - Math.abs(b.vel.y));
-    const target = candidates[0];
-    const vy = target.vel.y;
+  // Kies vuurwerk dichtst bij apex
+  candidates.sort((a, b) => Math.abs(a.vel.y) - Math.abs(b.vel.y));
+  const target = candidates[0];
+  const vy = target.vel.y;
 
-    if (Math.abs(vy) <= APEX_THRESHOLD) {
-      target.status = FireworkStatus.EXPLODING;
-      const r = Math.random();
+  // 🎯 PERFECT HIT (bij apex)
+  if (Math.abs(vy) <= APEX_THRESHOLD) {
+    target.status = FireworkStatus.EXPLODING;
 
-      if (r < 0.15) {
-        createLogoExplosion(target.pos.x, target.pos.y);
-      } else if (r < 0.35) {
-        createTextExplosion(
-          TEXT_WORDS[Math.floor(Math.random() * TEXT_WORDS.length)],
-          target.pos.x,
-          target.pos.y,
-          target.color
-        );
-      } else if (r < 0.55) {
+    const r = Math.random();
+
+    if (r < 0.15) {
+      // 🖼️ Logo-explosie
+      createLogoExplosion(target.pos.x, target.pos.y);
+    } else if (r < 0.35) {
+      createTextExplosion(
+        TEXT_WORDS[Math.floor(Math.random() * TEXT_WORDS.length)],
+        target.pos.x,
+        target.pos.y,
+        target.color
+      );
+    } else if (r < 0.55) {
+      createRingExplosion(target.pos.x, target.pos.y, target.color);
+    } else if (r < 0.75) {
+      createSpiralExplosion(target.pos.x, target.pos.y, target.color);
+    } else {
+      createExplosion(target.pos.x, target.pos.y, target.color, 'perfect');
+      if (r < 0.2) {
+        const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        createTextExplosion(word, target.pos.x, target.pos.y, target.color);
+      } else if (r < 0.4) {
         createRingExplosion(target.pos.x, target.pos.y, target.color);
-      } else if (r < 0.75) {
+      } else if (r < 0.6) {
         createSpiralExplosion(target.pos.x, target.pos.y, target.color);
+      } else if (r < 0.8) {
+        createDoubleExplosion(target.pos.x, target.pos.y, target.color);
       } else {
-        if (r < 0.8) {
-          createDoubleExplosion(target.pos.x, target.pos.y, target.color);
-        } else {
-          createExplosion(target.pos.x, target.pos.y, target.color, 'perfect');
-        }
+        createExplosion(target.pos.x, target.pos.y, target.color, 'perfect');
       }
+
       onScoreUpdate(SCORE_PERFECT, 'perfect');
       target.status = FireworkStatus.DEAD;
       return;
     }
 
     if (vy < -APEX_THRESHOLD) {
-      if (vy < -2.3) {
+      if (vy < -3) {
         target.status = FireworkStatus.DUD;
         target.color = '#555';
         target.vel.y *= 0.5;
@@ -505,18 +538,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
 
-    if (vy > APEX_THRESHOLD) {
-      target.status = FireworkStatus.WET;
+    onScoreUpdate(SCORE_PERFECT, 'perfect');
+    target.status = FireworkStatus.DEAD;
+    return;
+  }
+
+  // ⏫ TE VROEG
+  if (vy < -APEX_THRESHOLD) {
+    if (vy < -6) {
+      // ❌ MIS
+      target.status = FireworkStatus.DUD;
       target.color = '#555';
-      onScoreUpdate(0, 'wet');
+      target.vel.y *= 0.5;
+      onScoreUpdate(0, 'miss');
+    } else {
+      // 👍 GOOD
+      target.status = FireworkStatus.EXPLODING;
+      createExplosion(target.pos.x, target.pos.y, target.color, 'normal');
+      onScoreUpdate(SCORE_GOOD, 'good');
+      target.status = FireworkStatus.DEAD;
     }
-  }, [gameState, onScoreUpdate]);
+    return;
+  }
+
+  // ⏬ TE LAAT
+  if (vy > APEX_THRESHOLD) {
+    target.status = FireworkStatus.WET;
+    target.color = '#555';
+    onScoreUpdate(0, 'wet');
+  }
+}, [gameState, onScoreUpdate]);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (onBeat) onBeat();
+        if (onBeat) onBeat();
       if (e.code === 'Space') handleTrigger();
     };
+
     const handleResize = () => {
       if (canvasRef.current) {
         canvasRef.current.width = window.innerWidth;
